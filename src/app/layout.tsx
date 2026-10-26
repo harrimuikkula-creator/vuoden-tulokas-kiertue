@@ -1,0 +1,42 @@
+import type { Metadata } from "next";
+import { Anton, Manrope } from "next/font/google";
+import "./globals.css";
+
+const display = Anton({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const body = Manrope({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+export const metadata: Metadata = {
+  title: "Vuoden Tulokas Stand Up -kiertue",
+  description:
+    "Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue. Liput ja teaser tulossa.",
+  openGraph: {
+    title: "Vuoden Tulokas Stand Up -kiertue",
+    description:
+      "Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue.",
+    images: ["/tour-poster.jpg"],
+    locale: "fi_FI",
+    type: "website",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="fi">
+      <body className={`${display.variable} ${body.variable}`}>{children}</body>
+    </html>
+  );
+}
