@@ -19,6 +19,13 @@ export const metadata: Metadata = {
   title: "Vuoden Tulokas Stand Up -kiertue",
   description:
     "Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue. Liput ja teaser tulossa.",
+  icons: {
+    icon: [
+      { url: "/vtsk.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "48x48" },
+    ],
+    apple: "/apple-icon.png",
+  },
   openGraph: {
     title: "Vuoden Tulokas Stand Up -kiertue",
     description:

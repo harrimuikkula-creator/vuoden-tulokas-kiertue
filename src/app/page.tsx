@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { comedians, clipToEmbedUrl } from "@/data/comedians";
+import ComedianStage from "@/components/ComedianStage";
 import { quotes } from "@/data/quotes";
 import { shows } from "@/data/shows";
 import { tour } from "@/data/tour";
@@ -129,79 +129,7 @@ export default function Home() {
             <p className={styles.sectionLead}>
               Seitsemän koomikkoa — bios, some ja klipit päivittyvät kiertueen myötä.
             </p>
-            <ul className={styles.comedianGrid}>
-              {comedians.map((comedian) => {
-                const socialEntries = Object.entries(comedian.socials).filter(
-                  ([, url]) => Boolean(url),
-                ) as [string, string][];
-                const socialLabels: Record<string, string> = {
-                  instagram: "Instagram",
-                  website: "Verkkosivu",
-                  tiktok: "TikTok",
-                  facebook: "Facebook",
-                  youtube: "YouTube",
-                };
-
-                return (
-                  <li key={comedian.id} className={styles.comedian} id={comedian.id}>
-                    <div className={styles.photoWrap}>
-                      {comedian.photo ? (
-                        <Image
-                          className={styles.photo}
-                          src={comedian.photo}
-                          alt={comedian.name}
-                          width={640}
-                          height={800}
-                          sizes="(max-width: 640px) 100vw, (max-width: 980px) 50vw, 33vw"
-                        />
-                      ) : (
-                        <div className={styles.photoFallback} aria-hidden="true">
-                          {comedian.initials}
-                        </div>
-                      )}
-                    </div>
-                    <h3 className={styles.comedianName}>{comedian.name}</h3>
-                    <p className={styles.comedianBio}>{comedian.bio}</p>
-                    {socialEntries.length > 0 ? (
-                      <ul className={styles.socials}>
-                        {socialEntries.map(([key, url]) => (
-                          <li key={key}>
-                            <a
-                              className={styles.socialLink}
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                            >
-                              {socialLabels[key] ?? key}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                    {comedian.clips.length > 0 ? (
-                      <div className={styles.clips}>
-                        {comedian.clips.map((clip) => {
-                          const embed = clipToEmbedUrl(clip);
-                          if (!embed) return null;
-                          return (
-                            <iframe
-                              key={clip}
-                              className={styles.clipFrame}
-                              src={embed}
-                              title={`${comedian.name} — klippi`}
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                              allowFullScreen
-                            />
-                          );
-                        })}
-                      </div>
-                    ) : comedian.placeholder ? (
-                      <p className={styles.clipNote}>Klipit tulossa</p>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
+            <ComedianStage />
           </div>
         </section>
       </main>

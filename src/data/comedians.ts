@@ -13,7 +13,7 @@ export type Comedian = {
   photo: string | null;
   bio: string;
   socials: SocialLinks;
-  /** YouTube watch or shorts URLs */
+  /** YouTube watch or shorts URLs. Two slots are shown for every comedian. */
   clips: string[];
   placeholder: boolean;
 };
