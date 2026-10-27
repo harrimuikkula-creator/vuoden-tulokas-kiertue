@@ -34,7 +34,7 @@ export function clipToEmbedUrl(url: string): string | null {
 }
 
 const placeholderBio =
-  "Bio tulossa. Tämä koomikko on osa Vuoden Tulokas Stand Up -kiertuetta — tarina, linkit ja klipit päivitetään pian.";
+  "LUONNOS Bio tulossa. Tämä koomikko on osa Vuoden Tulokas Stand Up -kiertuetta — tarina, linkit ja klipit päivitetään pian.";
 
 /** Poster order: Joanna, Mister Habibi, Harri, Aino, Miikka, Minna, Samu */
 export const comedians: Comedian[] = [
@@ -68,6 +68,8 @@ export const comedians: Comedian[] = [
       instagram: "https://www.instagram.com/harrimuikkula/",
       website: "https://www.harrimuikkula.fi",
       tiktok: "https://www.tiktok.com/@harrimuikkula",
+      facebook: "https://www.facebook.com/profile.php?id=61564262994506",
+      youtube: "https://www.youtube.com/@harrimuikkula2477",
     },
     clips: [
       "https://www.youtube.com/shorts/RelqXTqWrTA",

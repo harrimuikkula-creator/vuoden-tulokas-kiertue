@@ -153,7 +153,7 @@ export default function ComedianStage() {
             ))}
           </ul>
         ) : (
-          <p className={styles.socialNote}>Some tulossa</p>
+          <p className={styles.socialNote}>LUONNOS Some tulossa</p>
         )}
         <h3 className={styles.comedianName}>{comedian.name}</h3>
         <p className={styles.comedianBio}>{comedian.bio}</p>
@@ -173,7 +173,7 @@ export default function ComedianStage() {
                     allowFullScreen
                   />
                 ) : (
-                  <p className={styles.clipPending}>{label} · tulossa</p>
+                  <p className={styles.clipPending}>LUONNOS {label} · tulossa</p>
                 )}
               </li>
             );

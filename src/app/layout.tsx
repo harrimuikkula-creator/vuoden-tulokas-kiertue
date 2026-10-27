@@ -18,7 +18,7 @@ const body = Manrope({
 export const metadata: Metadata = {
   title: "Vuoden Tulokas Stand Up -kiertue",
   description:
-    "Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue. Liput ja teaser tulossa.",
+    "LUONNOS Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue. Liput ja teaser tulossa.",
   icons: {
     icon: [
       { url: "/vtsk.png", type: "image/png", sizes: "32x32" },
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Vuoden Tulokas Stand Up -kiertue",
     description:
-      "Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue.",
+      "LUONNOS Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue.",
     images: ["/tour-poster.jpg"],
     locale: "fi_FI",
     type: "website",

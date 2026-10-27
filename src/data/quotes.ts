@@ -9,20 +9,20 @@ export type Quote = {
 export const quotes: Quote[] = [
   {
     id: "q1",
-    text: "Energiaa, yllätyksiä ja lavakemiaa — juuri sitä, mitä stand up -kiertueelta toivoo.",
-    attribution: "Placeholder-arvostelu",
+    text: "LUONNOS Energiaa, yllätyksiä ja lavakemiaa — juuri sitä, mitä stand up -kiertueelta toivoo.",
+    attribution: "LUONNOS Placeholder-arvostelu",
     placeholder: true,
   },
   {
     id: "q2",
-    text: "Seitsemän erilaista ääntä samalla illalla. Nauru ei lopu kesken.",
-    attribution: "Placeholder-arvostelu",
+    text: "LUONNOS Seitsemän erilaista ääntä samalla illalla. Nauru ei lopu kesken.",
+    attribution: "LUONNOS Placeholder-arvostelu",
     placeholder: true,
   },
   {
     id: "q3",
-    text: "Kiertue, jota kannattaa seurata — sekä uusille tulokkaille että stand up -faneille.",
-    attribution: "Placeholder-arvostelu",
+    text: "LUONNOS Kiertue, jota kannattaa seurata — sekä uusille tulokkaille että stand up -faneille.",
+    attribution: "LUONNOS Placeholder-arvostelu",
     placeholder: true,
   },
 ];

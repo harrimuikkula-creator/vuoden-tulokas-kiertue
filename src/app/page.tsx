@@ -11,16 +11,37 @@ export default function Home() {
       <header className={styles.hero}>
         <div className={styles.heroMedia} aria-hidden="true">
           <Image
-            className={styles.heroPoster}
+            className={`${styles.heroPoster} ${styles.heroPosterDesktop}`}
             src={tour.posterSrc}
             alt=""
             fill
             priority
             sizes="100vw"
           />
+          {tour.posterSrcMobile ? (
+            <Image
+              className={`${styles.heroPoster} ${styles.heroPosterMobile}`}
+              src={tour.posterSrcMobile}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+            />
+          ) : null}
           <div className={styles.heroScrim} />
         </div>
-        <div className={styles.heroInner}>
+        <div className={styles.heroBanner}>
+          <div className={styles.heroBannerCopy}>
+            <p className={styles.heroTagline}>{tour.tagline}</p>
+            <div className={styles.ctaGroup}>
+              <a className={styles.ctaPrimary} href="#keikat">
+                Keikat
+              </a>
+              <a className={styles.ctaSecondary} href="#koomikot">
+                Koomikot
+              </a>
+            </div>
+          </div>
           <Image
             className={styles.brandMark}
             src={tour.logoSrc}
@@ -29,15 +50,6 @@ export default function Home() {
             height={560}
             priority
           />
-          <p className={styles.heroTagline}>{tour.tagline}</p>
-          <div className={styles.ctaGroup}>
-            <a className={styles.ctaPrimary} href="#keikat">
-              Keikat
-            </a>
-            <a className={styles.ctaSecondary} href="#koomikot">
-              Koomikot
-            </a>
-          </div>
         </div>
       </header>
 
@@ -46,7 +58,7 @@ export default function Home() {
           <div className={`${styles.sectionInner} ${styles.teaserGrid}`}>
             <div>
               <p className={styles.sectionEyebrow}>Tarina</p>
-              <h2 className={styles.sectionTitle}>Kiertue lähtee liikkeelle</h2>
+              <h2 className={styles.sectionTitle}>LUONNOS Standupin tuoreet kasvot</h2>
               <p className={styles.sectionLead}>{tour.story}</p>
             </div>
             <div>
@@ -59,11 +71,15 @@ export default function Home() {
                   allowFullScreen
                 />
               ) : (
-                <div className={styles.teaserSlot} role="img" aria-label={tour.teaserNote}>
-                  <div>
-                    <p className={styles.teaserSlotLabel}>{tour.teaserNote}</p>
-                    <p className={styles.teaserSlotHint}>Videoembed päivitetään tähän.</p>
-                  </div>
+                <div className={styles.teaserImageWrap}>
+                  <Image
+                    className={styles.teaserImage}
+                    src={tour.teaserImageSrc}
+                    alt={`${tour.name} lavalla`}
+                    width={1600}
+                    height={1200}
+                    sizes="(max-width: 860px) 100vw, 50vw"
+                  />
                 </div>
               )}
             </div>
@@ -72,8 +88,8 @@ export default function Home() {
 
         <section className={`${styles.section} ${styles.quotes}`} id="arvostelut">
           <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>Arvostelut</p>
-            <h2 className={styles.sectionTitle}>Mitä sanotaan</h2>
+            <p className={styles.sectionEyebrow}>LUONNOS Arvostelut</p>
+            <h2 className={styles.sectionTitle}>LUONNOS Mitä sanotaan</h2>
             <ul className={styles.quoteList}>
               {quotes.map((quote) => (
                 <li key={quote.id} className={styles.quoteItem}>
@@ -127,7 +143,7 @@ export default function Home() {
             <p className={styles.sectionEyebrow}>Koomikot</p>
             <h2 className={styles.sectionTitle}>Lavalla</h2>
             <p className={styles.sectionLead}>
-              Seitsemän koomikkoa — bios, some ja klipit päivittyvät kiertueen myötä.
+              Seitsemän koomikkoa — bios, some ja klipit päivittyvät...
             </p>
             <ComedianStage />
           </div>
@@ -137,7 +153,13 @@ export default function Home() {
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
           <p className={styles.footerBrand}>{tour.name}</p>
-          <p className={styles.footerCredit}>Stand up -kiertue · Suomi</p>
+          <Image
+            className={styles.footerLogo}
+            src={tour.logoSrc}
+            alt={tour.name}
+            width={840}
+            height={560}
+          />
         </div>
       </footer>
     </div>
