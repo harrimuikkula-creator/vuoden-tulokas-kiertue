@@ -4,12 +4,38 @@
 
 /* —— Hero —— */
 .hero {
-  position: relative;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   min-height: 100svh;
+  color: var(--white);
+  background: var(--blue-deep);
+}
+
+.topBar {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.5rem;
+  padding: 0.75rem clamp(1rem, 3vw, 1.75rem);
+  background: var(--blue);
+  border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 700px) {
+  .topBar {
+    min-height: 4.35rem;
+    padding: 1rem 1rem;
+  }
+}
+
+.heroStage {
+  position: relative;
   display: grid;
   align-items: end;
+  min-height: 0;
   overflow: hidden;
-  color: var(--white);
   background: var(--blue-deep);
 }
 
@@ -27,18 +53,48 @@
   animation: poster-drift 8s ease-out forwards;
 }
 
-.heroPosterMobile {
+/* Desktop fill-poster; hidden on narrow viewports */
+.heroPosterFill {
+  display: block;
+}
+
+/* Mobile intrinsic poster — width:100% / height:auto, no crop */
+.heroPosterIntrinsic {
   display: none;
+  width: 100%;
+  height: auto;
 }
 
 @media (max-width: 700px) {
-  .heroPosterMobile {
-    display: block;
+  .hero {
+    min-height: unset;
+    grid-template-rows: auto auto;
   }
 
-  /* Piilota desktop-kuva vain kun erillinen mobiilikuva on ladattu */
-  .heroMedia:has(.heroPosterMobile) .heroPosterDesktop {
+  .heroStage {
+    display: block;
+    width: 100%;
+  }
+
+  .heroMedia {
+    position: relative;
+    inset: auto;
+  }
+
+  .heroPosterFill {
     display: none;
+  }
+
+  .heroPosterIntrinsic {
+    display: block;
+    animation: none;
+  }
+
+  .heroBanner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
   }
 }
 
@@ -53,6 +109,18 @@
       rgba(18, 24, 60, 0.92) 100%
     ),
     linear-gradient(90deg, rgba(30, 50, 120, 0.35), transparent 55%);
+}
+
+@media (max-width: 700px) {
+  .heroScrim {
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      transparent 55%,
+      rgba(18, 24, 60, 0.55) 78%,
+      rgba(18, 24, 60, 0.9) 100%
+    );
+  }
 }
 
 .heroBanner {
@@ -81,6 +149,7 @@
 
 .brandMark {
   width: min(120px, 34vw);
+  max-width: 100%;
   height: auto;
   justify-self: end;
   align-self: end;
@@ -103,9 +172,10 @@
 
 .ctaGroup {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
 }
 
 .ctaPrimary,
@@ -113,16 +183,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3rem;
-  padding: 0.7rem 1.4rem;
+  min-height: 2.35rem;
+  padding: 0.4rem 1rem;
   font-family: var(--font-display);
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-decoration: none;
   border: 2px solid transparent;
   transition: transform 0.2s ease, background-color 0.2s ease, color 0.2s ease,
     border-color 0.2s ease;
+}
+
+@media (max-width: 700px) {
+  .ctaPrimary,
+  .ctaSecondary {
+    min-height: 2.55rem;
+    padding: 0.45rem 1.05rem;
+    font-size: 0.88rem;
+    flex: 1 1 auto;
+    max-width: 10.5rem;
+  }
 }
 
 .ctaPrimary {

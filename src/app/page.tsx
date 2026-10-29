@@ -9,47 +9,51 @@ export default function Home() {
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
-        <div className={styles.heroMedia} aria-hidden="true">
-          <Image
-            className={`${styles.heroPoster} ${styles.heroPosterDesktop}`}
-            src={tour.posterSrc}
-            alt=""
-            fill
-            priority
-            sizes="100vw"
-          />
-          {tour.posterSrcMobile ? (
+        <nav className={styles.topBar} aria-label="Päänavigaatio">
+          <div className={styles.ctaGroup}>
+            <a className={styles.ctaPrimary} href="#keikat">
+              Keikat
+            </a>
+            <a className={styles.ctaSecondary} href="#koomikot">
+              Koomikot
+            </a>
+          </div>
+        </nav>
+        <div className={styles.heroStage}>
+          <div className={styles.heroMedia} aria-hidden="true">
             <Image
-              className={`${styles.heroPoster} ${styles.heroPosterMobile}`}
-              src={tour.posterSrcMobile}
+              className={`${styles.heroPoster} ${styles.heroPosterFill}`}
+              src={tour.posterSrc}
               alt=""
               fill
               priority
               sizes="100vw"
             />
-          ) : null}
-          <div className={styles.heroScrim} />
-        </div>
-        <div className={styles.heroBanner}>
-          <div className={styles.heroBannerCopy}>
-            <p className={styles.heroTagline}>{tour.tagline}</p>
-            <div className={styles.ctaGroup}>
-              <a className={styles.ctaPrimary} href="#keikat">
-                Keikat
-              </a>
-              <a className={styles.ctaSecondary} href="#koomikot">
-                Koomikot
-              </a>
-            </div>
+            {/* Mobiili: leveyteen skaalautuva posteri — bränditeksti ei leikkaudu */}
+            <Image
+              className={styles.heroPosterIntrinsic}
+              src={tour.posterSrcMobile ?? tour.posterSrc}
+              alt=""
+              width={1143}
+              height={1600}
+              priority
+              sizes="100vw"
+            />
+            <div className={styles.heroScrim} />
           </div>
-          <Image
-            className={styles.brandMark}
-            src={tour.logoSrc}
-            alt={tour.name}
-            width={840}
-            height={560}
-            priority
-          />
+          <div className={styles.heroBanner}>
+            <div className={styles.heroBannerCopy}>
+              <p className={styles.heroTagline}>{tour.tagline}</p>
+            </div>
+            <Image
+              className={styles.brandMark}
+              src={tour.logoSrc}
+              alt={tour.name}
+              width={840}
+              height={560}
+              priority
+            />
+          </div>
         </div>
       </header>
 
