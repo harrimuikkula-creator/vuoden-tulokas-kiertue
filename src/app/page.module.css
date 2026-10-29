@@ -1,5 +1,7 @@
 .page {
   min-height: 100vh;
+  /* Estää cream-bodya näkymästä heron/aukojen läpi */
+  background: var(--blue-deep);
 }
 
 /* —— Hero —— */
@@ -62,24 +64,54 @@
 .heroPosterIntrinsic {
   display: none;
   width: 100%;
+  max-width: 100%;
   height: auto;
+  margin-inline: auto;
+  object-fit: contain;
+  object-position: center center;
 }
 
 @media (max-width: 700px) {
+  /*
+   * Hero täyttää näkyvän ruudun ja jatkuu sen alle.
+   * Safarin alapalkki on läpikuultava — ilman jatketta palkin läpi näkyy
+   * seuraavan osion vaalea tausta.
+   */
   .hero {
-    min-height: unset;
-    grid-template-rows: auto auto;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    width: 100%;
+    height: auto;
+    min-height: calc(var(--app-height, 100dvh) + 9rem);
+    max-height: none;
+    padding-bottom: 9rem;
+    overflow: visible;
+    background: var(--blue-deep);
+  }
+
+  .topBar {
+    flex: 0 0 auto;
   }
 
   .heroStage {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     width: 100%;
+    min-height: 0;
   }
 
   .heroMedia {
     position: relative;
     inset: auto;
+    flex: 1 1 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 0;
+    line-height: 0;
   }
 
   .heroPosterFill {
@@ -88,7 +120,14 @@
 
   .heroPosterIntrinsic {
     display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    margin-inline: auto;
+    object-fit: contain;
+    object-position: center center;
     animation: none;
+    transform: none;
   }
 
   /* Banner kuvan alle — ei peitä alarivin esiintyjiä */
@@ -97,8 +136,10 @@
     left: auto;
     right: auto;
     bottom: auto;
+    flex: 0 0 auto;
+    width: 100%;
     background: var(--blue-deep);
-    padding: 0.9rem 0.85rem 1rem;
+    padding: 0.85rem 0.85rem 1rem;
   }
 
   .heroScrim {

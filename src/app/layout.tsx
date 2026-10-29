@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Anton, Manrope } from "next/font/google";
+import SetAppHeight from "@/components/SetAppHeight";
 import "./globals.css";
 
 const display = Anton({
@@ -14,6 +15,12 @@ const body = Manrope({
   variable: "--font-body",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#1e3278",
+};
 
 export const metadata: Metadata = {
   title: "Vuoden Tulokas Stand Up -kiertue",
@@ -43,7 +50,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fi">
-      <body className={`${display.variable} ${body.variable}`}>{children}</body>
+      <body className={`${display.variable} ${body.variable}`}>
+        <SetAppHeight />
+        {children}
+      </body>
     </html>
   );
 }
