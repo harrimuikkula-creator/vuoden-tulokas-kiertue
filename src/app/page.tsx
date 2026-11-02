@@ -1,21 +1,41 @@
 import Image from "next/image";
+import type { Metadata } from "next";
 import ComedianStage from "@/components/ComedianStage";
-import { quotes } from "@/data/quotes";
-import { shows } from "@/data/shows";
-import { tour } from "@/data/tour";
+import { getSiteContent } from "@/lib/content";
 import styles from "./page.module.css";
 
-export default function Home() {
+/** Refresh sheet content about once a minute. */
+export const revalidate = 60;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { copy, assets } = await getSiteContent();
+  return {
+    title: copy.tourName,
+    description: copy.metaDescription,
+    openGraph: {
+      title: copy.tourName,
+      description: copy.metaDescription,
+      images: [assets.posterSrc],
+      locale: "fi_FI",
+      type: "website",
+    },
+  };
+}
+
+export default async function Home() {
+  const { copy, shows, quotes, assets } = await getSiteContent();
+  const teaserVideoUrl = copy.teaserVideoUrl;
+
   return (
     <div className={styles.page}>
       <header className={styles.hero}>
         <nav className={styles.topBar} aria-label="Päänavigaatio">
           <div className={styles.ctaGroup}>
             <a className={styles.ctaPrimary} href="#keikat">
-              Keikat
+              {copy.navShows}
             </a>
             <a className={styles.ctaSecondary} href="#koomikot">
-              Koomikot
+              {copy.navComedians}
             </a>
           </div>
         </nav>
@@ -23,7 +43,7 @@ export default function Home() {
           <div className={styles.heroMedia} aria-hidden="true">
             <Image
               className={`${styles.heroPoster} ${styles.heroPosterFill}`}
-              src={tour.posterSrc}
+              src={assets.posterSrc}
               alt=""
               fill
               priority
@@ -32,7 +52,7 @@ export default function Home() {
             {/* Mobiili: leveyteen skaalautuva posteri — bränditeksti ei leikkaudu */}
             <Image
               className={styles.heroPosterIntrinsic}
-              src={tour.posterSrcMobile ?? tour.posterSrc}
+              src={assets.posterSrcMobile ?? assets.posterSrc}
               alt=""
               width={1143}
               height={1600}
@@ -43,12 +63,12 @@ export default function Home() {
           </div>
           <div className={styles.heroBanner}>
             <div className={styles.heroBannerCopy}>
-              <p className={styles.heroTagline}>{tour.tagline}</p>
+              <p className={styles.heroTagline}>{copy.tourTagline}</p>
             </div>
             <Image
               className={styles.brandMark}
-              src={tour.logoSrc}
-              alt={tour.name}
+              src={assets.logoSrc}
+              alt={copy.tourName}
               width={840}
               height={560}
               priority
@@ -61,15 +81,15 @@ export default function Home() {
         <section className={`${styles.section} ${styles.teaser}`} id="tarina">
           <div className={`${styles.sectionInner} ${styles.teaserGrid}`}>
             <div>
-              <p className={styles.sectionEyebrow}>Tarina</p>
-              <h2 className={styles.sectionTitle}>LUONNOS Standupin tuoreet kasvot</h2>
-              <p className={styles.sectionLead}>{tour.story}</p>
+              <p className={styles.sectionEyebrow}>{copy.storyEyebrow}</p>
+              <h2 className={styles.sectionTitle}>{copy.storyTitle}</h2>
+              <p className={styles.sectionLead}>{copy.tourStory}</p>
             </div>
             <div>
-              {tour.teaserVideoUrl ? (
+              {teaserVideoUrl ? (
                 <iframe
                   className={styles.teaserFrame}
-                  src={tour.teaserVideoUrl}
+                  src={teaserVideoUrl}
                   title="Kiertueen teaser"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -78,8 +98,8 @@ export default function Home() {
                 <div className={styles.teaserImageWrap}>
                   <Image
                     className={styles.teaserImage}
-                    src={tour.teaserImageSrc}
-                    alt={`${tour.name} lavalla`}
+                    src={assets.teaserImageSrc}
+                    alt={`${copy.tourName} lavalla`}
                     width={1600}
                     height={1200}
                     sizes="(max-width: 860px) 100vw, 50vw"
@@ -92,8 +112,8 @@ export default function Home() {
 
         <section className={`${styles.section} ${styles.quotes}`} id="arvostelut">
           <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>LUONNOS Arvostelut</p>
-            <h2 className={styles.sectionTitle}>LUONNOS Mitä sanotaan</h2>
+            <p className={styles.sectionEyebrow}>{copy.quotesEyebrow}</p>
+            <h2 className={styles.sectionTitle}>{copy.quotesTitle}</h2>
             <ul className={styles.quoteList}>
               {quotes.map((quote) => (
                 <li key={quote.id} className={styles.quoteItem}>
@@ -109,11 +129,9 @@ export default function Home() {
 
         <section className={`${styles.section} ${styles.shows}`} id="keikat">
           <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>Keikat</p>
-            <h2 className={styles.sectionTitle}>Missä nähdään</h2>
-            <p className={styles.sectionLead}>
-              Seuraavat esitykset — lippulinkit päivitetään heti kun ne aukeavat.
-            </p>
+            <p className={styles.sectionEyebrow}>{copy.showsEyebrow}</p>
+            <h2 className={styles.sectionTitle}>{copy.showsTitle}</h2>
+            <p className={styles.sectionLead}>{copy.showsLead}</p>
             <ul className={styles.showList}>
               {shows.map((show) => (
                 <li key={show.id} className={styles.showRow}>
@@ -131,10 +149,10 @@ export default function Home() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      Liput
+                      {copy.ticketLabel}
                     </a>
                   ) : (
-                    <span className={styles.ticketSoon}>Liput tulossa</span>
+                    <span className={styles.ticketSoon}>{copy.ticketSoon}</span>
                   )}
                 </li>
               ))}
@@ -144,11 +162,9 @@ export default function Home() {
 
         <section className={`${styles.section} ${styles.comedians}`} id="koomikot">
           <div className={styles.sectionInner}>
-            <p className={styles.sectionEyebrow}>Koomikot</p>
-            <h2 className={styles.sectionTitle}>Lavalla</h2>
-            <p className={styles.sectionLead}>
-              Seitsemän koomikkoa — bios, some ja klipit päivittyvät...
-            </p>
+            <p className={styles.sectionEyebrow}>{copy.comediansEyebrow}</p>
+            <h2 className={styles.sectionTitle}>{copy.comediansTitle}</h2>
+            <p className={styles.sectionLead}>{copy.comediansLead}</p>
             <ComedianStage />
           </div>
         </section>
@@ -156,11 +172,11 @@ export default function Home() {
 
       <footer className={styles.footer}>
         <div className={styles.footerInner}>
-          <p className={styles.footerBrand}>{tour.name}</p>
+          <p className={styles.footerBrand}>{copy.tourName}</p>
           <Image
             className={styles.footerLogo}
-            src={tour.logoSrc}
-            alt={tour.name}
+            src={assets.logoSrc}
+            alt={copy.tourName}
             width={840}
             height={560}
           />

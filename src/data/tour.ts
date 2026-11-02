@@ -1,3 +1,8 @@
+/**
+ * Brand assets + text fallbacks.
+ * Editable copy (name, tagline, story, …) lives in Google Sheets — see README.
+ * Image paths stay here (and in `public/`).
+ */
 export const tour = {
   name: "Vuoden Tulokas Stand Up -kiertue",
   shortName: "Vuoden Tulokas",

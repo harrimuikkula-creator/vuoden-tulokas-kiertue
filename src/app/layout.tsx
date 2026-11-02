@@ -33,14 +33,6 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
-  openGraph: {
-    title: "Vuoden Tulokas Stand Up -kiertue",
-    description:
-      "LUONNOS Seitsemän koomikkoa, kaksi keikkaa — Vuoden Tulokas Stand Up -kiertue.",
-    images: ["/tour-poster.jpg"],
-    locale: "fi_FI",
-    type: "website",
-  },
 };
 
 export default function RootLayout({
