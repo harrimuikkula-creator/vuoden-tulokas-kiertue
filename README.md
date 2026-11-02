@@ -61,7 +61,7 @@ Lisää Environment Variable:
 
 | Tiedosto | Mitä |
 |----------|------|
-| `src/data/comedians.ts` | Koomikot, biot, some, YouTube-klipit |
+| `src/data/comedians.ts` | Koomikot, oletusbiot ja some. Esittelyteksti, kuva ja videolinkit täydentyvät StandUppAppin kiertueelta «Kuvat ja markkinointi», kun julkaisu on päällä. |
 | `src/data/tour.ts` | Kuvat / polut (posteri, logo, teaser-kuva) |
 | `src/data/siteCopy.ts`, `shows.ts`, `quotes.ts` | Fallbackit jos Sheet ei ole saatavilla |
 

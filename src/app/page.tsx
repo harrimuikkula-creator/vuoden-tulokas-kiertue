@@ -2,6 +2,7 @@ import Image from "next/image";
 import type { Metadata } from "next";
 import ComedianStage from "@/components/ComedianStage";
 import { getSiteContent } from "@/lib/content";
+import { loadSiteComedians } from "@/lib/publicCast";
 import styles from "./page.module.css";
 
 /** Refresh sheet content about once a minute. */
@@ -23,7 +24,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Home() {
-  const { copy, shows, quotes, assets } = await getSiteContent();
+  const [{ copy, shows, quotes, assets }, lineup] = await Promise.all([
+    getSiteContent(),
+    loadSiteComedians(),
+  ]);
   const teaserVideoUrl = copy.teaserVideoUrl;
 
   return (
@@ -165,7 +169,7 @@ export default async function Home() {
             <p className={styles.sectionEyebrow}>{copy.comediansEyebrow}</p>
             <h2 className={styles.sectionTitle}>{copy.comediansTitle}</h2>
             <p className={styles.sectionLead}>{copy.comediansLead}</p>
-            <ComedianStage />
+            <ComedianStage comedians={lineup} />
           </div>
         </section>
       </main>

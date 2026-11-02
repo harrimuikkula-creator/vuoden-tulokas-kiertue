@@ -15,12 +15,18 @@ export type Comedian = {
   socials: SocialLinks;
   /** YouTube watch or shorts URLs. Two slots are shown for every comedian. */
   clips: string[];
+  /** Extra portraits from the tour app. The first is also `photo`. */
+  photos?: string[];
   placeholder: boolean;
 };
 
 function youtubeEmbedId(url: string): string | null {
   const shorts = url.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/);
   if (shorts) return shorts[1];
+  const embed = url.match(/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/);
+  if (embed) return embed[1];
+  const live = url.match(/youtube\.com\/(?:live|v)\/([a-zA-Z0-9_-]+)/);
+  if (live) return live[1];
   const watch = url.match(/[?&]v=([a-zA-Z0-9_-]+)/);
   if (watch) return watch[1];
   const youtu = url.match(/youtu\.be\/([a-zA-Z0-9_-]+)/);

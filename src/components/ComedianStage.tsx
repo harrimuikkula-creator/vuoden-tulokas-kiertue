@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type KeyboardEvent } from "react";
-import { clipToEmbedUrl, comedians } from "@/data/comedians";
+import { clipToEmbedUrl, type Comedian } from "@/data/comedians";
 import styles from "@/app/page.module.css";
 
 const socialLabels: Record<string, string> = {
@@ -17,17 +17,28 @@ const clipSlots = [0, 1] as const;
 /** Long enough to read a short intro; a full round of seven takes about a minute. */
 const ROTATE_MS = 9_000;
 
-export default function ComedianStage() {
+export default function ComedianStage({ comedians }: { comedians: Comedian[] }) {
   const [index, setIndex] = useState(0);
+  const [photoIndex, setPhotoIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = comedians.length;
-  const comedian = comedians[index];
+  const comedian = comedians[index] ?? comedians[0];
+  const gallery = comedian?.photos?.length
+    ? comedian.photos
+    : comedian?.photo
+      ? [comedian.photo]
+      : [];
+  const photo = gallery[photoIndex] ?? gallery[0] ?? null;
+
+  useEffect(() => {
+    setPhotoIndex(0);
+  }, [comedian?.id]);
 
   useEffect(() => {
     const id = window.location.hash.replace("#", "");
     const found = comedians.findIndex((person) => person.id === id);
     if (found >= 0) setIndex(found);
-  }, []);
+  }, [comedians]);
 
   useEffect(() => {
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -54,6 +65,8 @@ export default function ComedianStage() {
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [paused, index, count]);
+
+  if (!comedian || count === 0) return null;
 
   function show(next: number) {
     setIndex((next + count) % count);
@@ -128,18 +141,28 @@ export default function ComedianStage() {
 
       <article key={comedian.id} className={styles.stage} id={comedian.id} aria-label={comedian.name}>
         <div className={styles.photoWrap}>
-          {comedian.photo ? (
+          {photo ? (
             <Image
               className={styles.photo}
-              src={comedian.photo}
+              src={photo}
               alt={comedian.name}
               fill
               sizes="(max-width: 860px) 100vw, 32vw"
+              unoptimized={photo.startsWith("http")}
             />
           ) : (
             <div className={styles.photoFallback} aria-hidden="true">
               {comedian.initials}
             </div>
+          )}
+          {gallery.length > 1 && (
+            <button
+              type="button"
+              className={styles.photoNext}
+              onClick={() => setPhotoIndex((current) => (current + 1) % gallery.length)}
+            >
+              Kuva {photoIndex + 1}/{gallery.length}
+            </button>
           )}
         </div>
         {socialEntries.length > 0 ? (
@@ -172,6 +195,15 @@ export default function ComedianStage() {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
                   />
+                ) : url ? (
+                  <a
+                    className={styles.clipLink}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Katso video
+                  </a>
                 ) : (
                   <p className={styles.clipPending}>LUONNOS {label} · tulossa</p>
                 )}
