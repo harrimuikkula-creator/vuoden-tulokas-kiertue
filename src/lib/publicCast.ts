@@ -86,12 +86,12 @@ export function applyPublicCast(base: Comedian[], cast: PublicCast | null): Come
         candidate.slug === person.id || normalizeName(candidate.name) === normalizeName(person.name),
     );
     if (!row) return person;
-    const photos = row.photos.filter(Boolean);
+    const photo = row.photos.find(Boolean);
     const clips = row.videos.map((video) => video.url).filter(Boolean).slice(0, 2);
     const bio = row.bio?.trim();
     return {
       ...person,
-      ...(photos.length ? { photo: photos[0], photos } : {}),
+      ...(photo ? { photo, photos: [photo] } : {}),
       ...(bio ? { bio, placeholder: false } : {}),
       ...(clips.length ? { clips } : {}),
     };

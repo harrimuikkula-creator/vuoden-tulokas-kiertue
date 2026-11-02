@@ -19,20 +19,10 @@ const ROTATE_MS = 9_000;
 
 export default function ComedianStage({ comedians }: { comedians: Comedian[] }) {
   const [index, setIndex] = useState(0);
-  const [photoIndex, setPhotoIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const count = comedians.length;
   const comedian = comedians[index] ?? comedians[0];
-  const gallery = comedian?.photos?.length
-    ? comedian.photos
-    : comedian?.photo
-      ? [comedian.photo]
-      : [];
-  const photo = gallery[photoIndex] ?? gallery[0] ?? null;
-
-  useEffect(() => {
-    setPhotoIndex(0);
-  }, [comedian?.id]);
+  const photo = comedian?.photo ?? null;
 
   useEffect(() => {
     const id = window.location.hash.replace("#", "");
@@ -154,15 +144,6 @@ export default function ComedianStage({ comedians }: { comedians: Comedian[] }) 
             <div className={styles.photoFallback} aria-hidden="true">
               {comedian.initials}
             </div>
-          )}
-          {gallery.length > 1 && (
-            <button
-              type="button"
-              className={styles.photoNext}
-              onClick={() => setPhotoIndex((current) => (current + 1) % gallery.length)}
-            >
-              Kuva {photoIndex + 1}/{gallery.length}
-            </button>
           )}
         </div>
         {socialEntries.length > 0 ? (
