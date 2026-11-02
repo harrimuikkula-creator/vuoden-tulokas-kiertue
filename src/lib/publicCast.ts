@@ -15,12 +15,19 @@ type FsValue = {
 
 export type PublicCastVideo = { url: string; title?: string };
 
+export type PublicCastSocials = Partial<
+  Record<"instagram" | "facebook" | "tiktok" | "youtube" | "website", string>
+>;
+
+const SOCIAL_KEYS = ["instagram", "facebook", "tiktok", "youtube", "website"] as const;
+
 export type PublicCastComedian = {
   name: string;
   slug?: string;
   bio?: string;
   photos: string[];
   videos: PublicCastVideo[];
+  socials?: PublicCastSocials;
 };
 
 export type PublicCast = {
@@ -57,7 +64,22 @@ function parseComedian(value: FsValue): PublicCastComedian | null {
       return title ? { url, title } : { url };
     })
     .filter((item): item is PublicCastVideo => Boolean(item));
-  return { name, ...(slug ? { slug } : {}), ...(bio ? { bio } : {}), photos, videos };
+  const socialFields = field(value, "socials")?.mapValue?.fields;
+  const socials: PublicCastSocials = {};
+  if (socialFields) {
+    for (const key of SOCIAL_KEYS) {
+      const url = text(socialFields[key]);
+      if (url) socials[key] = url;
+    }
+  }
+  return {
+    name,
+    ...(slug ? { slug } : {}),
+    ...(bio ? { bio } : {}),
+    photos,
+    videos,
+    ...(Object.keys(socials).length ? { socials } : {}),
+  };
 }
 
 function parseDocument(fields: Record<string, FsValue> | undefined): PublicCast | null {
@@ -89,11 +111,19 @@ export function applyPublicCast(base: Comedian[], cast: PublicCast | null): Come
     const photo = row.photos.find(Boolean);
     const clips = row.videos.map((video) => video.url).filter(Boolean).slice(0, 2);
     const bio = row.bio?.trim();
+    const socials = row.socials
+      ? SOCIAL_KEYS.reduce<Comedian["socials"]>((links, key) => {
+          const url = row.socials?.[key] || person.socials[key];
+          if (url) links[key] = url;
+          return links;
+        }, {})
+      : person.socials;
     return {
       ...person,
       ...(photo ? { photo, photos: [photo] } : {}),
       ...(bio ? { bio, placeholder: false } : {}),
       ...(clips.length ? { clips } : {}),
+      socials,
     };
   });
 }
