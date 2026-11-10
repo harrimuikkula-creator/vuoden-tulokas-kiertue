@@ -42,16 +42,18 @@ export default async function Home() {
               {copy.navComedians}
             </a>
           </div>
+          <p className={styles.heroTaglineBar}>{copy.tourTagline}</p>
         </nav>
         <div className={styles.heroStage}>
           <div className={styles.heroMedia} aria-hidden="true">
             <Image
               className={`${styles.heroPoster} ${styles.heroPosterFill}`}
               src={assets.posterSrc}
-              alt=""
-              fill
+              alt={copy.tourName}
+              width={2400}
+              height={1350}
               priority
-              sizes="100vw"
+              unoptimized
             />
             {/* Mobiili: leveyteen skaalautuva posteri — bränditeksti ei leikkaudu */}
             <Image

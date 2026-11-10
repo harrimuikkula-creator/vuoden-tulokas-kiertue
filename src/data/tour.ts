@@ -13,11 +13,8 @@ export const tour = {
   teaserImageSrc: "/tour-teaser.jpg",
   teaserVideoUrl: null as string | null,
   logoSrc: "/tour-logo.jpg",
-  /** Desktop hero — suositus 2400×1350 (16:9) */
-  posterSrc: "/tour-poster.jpg",
-  /**
-   * Mobiilihero (valinnainen). Kun tiedosto on valmis, aseta polku tähän.
-   * Suositus 1080×1920 (9:16) tai 1080×1620.
-   */
-  posterSrcMobile: null as string | null,
+  /** Desktop hero — alkuperäinen 2400×1350 vaakaposteri */
+  posterSrc: "/tour-poster-vaaka.jpg",
+  /** Mobiilihero — pystyjuliste */
+  posterSrcMobile: "/tour-poster.jpg",
 } as const;
