@@ -34,15 +34,27 @@ export function trackSiteVisit() {
       : 0,
   };
 
-  fetch("/api/site-pulse", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-    keepalive: true,
-  }).catch((error) => {
-    requestedThisPage = false;
-    console.warn("Site pulse failed.", error);
-  });
+  // Prefer Netlify Function (same as yrityskoomikko); fall back to Next API route.
+  const endpoints = ["/.netlify/functions/site-pulse", "/api/site-pulse"];
+
+  const send = (url: string) =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    });
+
+  send(endpoints[0])
+    .then((response) => {
+      if (response.ok || response.status === 503) return response;
+      return send(endpoints[1]);
+    })
+    .catch(() => send(endpoints[1]))
+    .catch((error) => {
+      requestedThisPage = false;
+      console.warn("Site pulse failed.", error);
+    });
 }
 
 function readSiteLanguage() {
