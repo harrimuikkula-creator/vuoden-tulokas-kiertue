@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Manrope } from "next/font/google";
 import SetAppHeight from "@/components/SetAppHeight";
+import TrackSiteVisit from "@/components/TrackSiteVisit";
 import "./globals.css";
 
 const display = Anton({
@@ -44,6 +45,7 @@ export default function RootLayout({
     <html lang="fi">
       <body className={`${display.variable} ${body.variable}`}>
         <SetAppHeight />
+        <TrackSiteVisit />
         {children}
       </body>
     </html>

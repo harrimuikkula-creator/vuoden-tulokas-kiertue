@@ -53,9 +53,21 @@ Tyhjä solu `Site`-välilehdellä säilyttää sivuston oletustekstin.
 
 ### Vercel
 
-Lisää Environment Variable:
+Lisää Environment Variables:
 
 - `GOOGLE_SHEETS_ID` = `161_R11bCnYHRPKTPAAfYlj7dz2fDUlt0WoX2DXyTaPI`
+- `DISCORD_WEBHOOK_URL` = Discord-kanavan webhook-URL (pakollinen kävijäilmoituksiin)
+- `DISCORD_MENTION` = valinnainen maininta, esim. `<@DISCORD_USER_ID>`
+- `FIREBASE_API_KEY` + `FIREBASE_PROJECT_ID` = sama Firebase kuin yrityskoomikko (käyntilaskuri)
+
+## Kävijäseuranta (Discord)
+
+Sama malli kuin yrityskoomikko-sivustolla: tuotantokäynnit lähettävät lyhyen Discord-ilmoituksen (paikka, laite, tuloreitti, käyntimäärä). Localhostia ei seurata. Bottikäynnit suodatetaan.
+
+1. Discord → kanava → **Edit Channel** → **Integrations** → **Webhooks** → **New Webhook** → kopioi URL
+2. Lisää URL Verceliin (`DISCORD_WEBHOOK_URL`) ja paikalliseen `.env.local`-tiedostoon
+3. Deployaa / pushaa muutokset Verceliin
+4. Avaa live-sivusto (ei localhost) — Discordiin pitäisi tulla ilmoitus
 
 ## Koodissa pysyvä sisältö
 

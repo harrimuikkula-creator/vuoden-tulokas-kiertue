@@ -816,3 +816,17 @@
   margin-left: auto;
   flex: 0 0 auto;
 }
+
+.footerPrivacy {
+  flex: 1 0 100%;
+  margin: 0;
+  max-width: 36rem;
+  font-size: 0.625rem;
+  line-height: 1.5;
+  opacity: 0.72;
+}
+
+.footerPrivacy strong {
+  font-weight: 600;
+  opacity: 1;
+}

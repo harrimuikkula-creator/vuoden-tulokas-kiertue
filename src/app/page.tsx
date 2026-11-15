@@ -186,6 +186,13 @@ export default async function Home() {
             width={840}
             height={560}
           />
+          <p className={styles.footerPrivacy}>
+            Tietosuoja: Kerään anonyymia tilastotietoa sivuston kävijämääristä
+            (sijainti, laite ja tuloreitti).{" "}
+            <strong>
+              Tietoja ei käytetä mainontaan eikä luovuteta eteenpäin.
+            </strong>
+          </p>
         </div>
       </footer>
     </div>

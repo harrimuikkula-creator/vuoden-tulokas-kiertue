@@ -1,0 +1,463 @@
+/**
+ * Turn a visit into a short Discord summary.
+ * Bot detection uses the request User-Agent and the browser automation flag.
+ */
+
+const BOT_PATTERNS: Array<[RegExp, string]> = [
+  [
+    /googlebot|adsbot-google|mediapartners-google|storebot-google|google-inspectiontool|googleother/i,
+    "Googlebot",
+  ],
+  [/bingbot|bingpreview|msnbot/i, "Bingbot"],
+  [/duckduckbot/i, "DuckDuckBot"],
+  [/baiduspider/i, "Baidu"],
+  [/yandexbot|yandeximages/i, "Yandex"],
+  [/applebot/i, "Applebot"],
+  [/petalbot/i, "PetalBot"],
+  [/bytespider/i, "Bytespider"],
+  [/ahrefsbot/i, "Ahrefs"],
+  [/semrushbot/i, "Semrush"],
+  [/mj12bot/i, "Majestic"],
+  [/dotbot/i, "DotBot"],
+  [/rogerbot/i, "Moz"],
+  [/gptbot|chatgpt-user|oai-searchbot/i, "OpenAI"],
+  [/claudebot|anthropic-ai|claude-web/i, "Anthropic"],
+  [/amazonbot/i, "Amazonbot"],
+  [/ccbot/i, "Common Crawl"],
+  [/facebookexternalhit|facebot/i, "Facebook"],
+  [/twitterbot/i, "Twitter"],
+  [/linkedinbot/i, "LinkedIn"],
+  [/slackbot/i, "Slack"],
+  [/discordbot/i, "Discord"],
+  [/^WhatsApp\//i, "WhatsApp"],
+  [/telegrambot/i, "Telegram"],
+  [/pinterestbot/i, "Pinterest"],
+  [/redditbot/i, "Reddit"],
+  [/embedly/i, "Embedly"],
+  [/chrome-lighthouse|pagespeed|gtmetrix|pingdom/i, "sivunopeustesti"],
+  [
+    /headlesschrome|phantomjs|selenium|puppeteer|playwright|cypress/i,
+    "automaatio",
+  ],
+  [
+    /\b(wget|curl|python-requests|python-urllib|scrapy|go-http-client|libwww-perl|okhttp|node-fetch|axios\/|httpclient|java\/)\b/i,
+    "skripti",
+  ],
+  [
+    /preview\.app\.github\.dev|github-camo|rendertron|prerender|screaming frog|siteaudit|uptimerobot|statuscake|better uptime|pingdom\.com|datadog|newrelic|synthetic/i,
+    "monitori",
+  ],
+  [/\bbot\b|\bcrawler\b|\bspider\b|\bcrawling\b/i, "botti"],
+];
+
+const LANGUAGE_LABELS: Record<string, string> = {
+  fi: "suomi",
+  en: "englanti",
+  sv: "ruotsi",
+  de: "saksa",
+  et: "viro",
+};
+
+export type GeoInfo = {
+  city: string;
+  country: { code: string; name: string } | null;
+  subdivision: { code: string; name: string } | null;
+};
+
+export function classifyVisitor({
+  userAgent = "",
+  automation = false,
+  screen = "",
+  hints = {},
+}: {
+  userAgent?: string;
+  automation?: boolean;
+  screen?: string;
+  hints?: { webdriver?: boolean };
+} = {}) {
+  const ua = String(userAgent || "").trim();
+  for (const [pattern, label] of BOT_PATTERNS) {
+    if (pattern.test(ua)) {
+      return { bot: true, uncertain: false, label };
+    }
+  }
+  if (automation || hints.webdriver === true) {
+    return { bot: true, uncertain: false, label: "automaatio" };
+  }
+  if (!ua) {
+    return { bot: false, uncertain: true, label: "ei-ua" };
+  }
+
+  const normalizedScreen = String(screen || "")
+    .trim()
+    .toLowerCase();
+  if (normalizedScreen === "0x0" || normalizedScreen === "1x1") {
+    return { bot: true, uncertain: false, label: "tyhjä-näyttö" };
+  }
+
+  return { bot: false, uncertain: false, label: "" };
+}
+
+export function describeDevice(
+  userAgent = "",
+  screen = "",
+  headers: Record<string, string> = {},
+) {
+  const hints = readClientHints(headers);
+  const parsed = parseUserAgent(userAgent);
+  const browser = hints.browser || parsed.browser;
+  const os = hints.platform || parsed.os;
+  const size = normalizeScreen(screen);
+  if (!browser && !os && !size) return "";
+  const kind = hints.mobile === true ? "puhelin" : parsed.kind;
+  return [browser, os, browser || os ? kind : "", size]
+    .filter(Boolean)
+    .join(" · ");
+}
+
+export function visitPlace(geo: GeoInfo | null) {
+  const city = String(geo?.city || "").trim();
+  const countryName = String(geo?.country?.name || "").trim();
+  const countryCode = String(geo?.country?.code || "").trim();
+  return {
+    city,
+    country: countryNameFromCode(countryCode) || countryName,
+  };
+}
+
+export function formatCountList(counts: Record<string, number> | null) {
+  const entries = Object.entries(counts || {})
+    .map(([name, count]) => [String(name), Number(count)] as const)
+    .filter(([name, count]) => name && Number.isFinite(count) && count > 0)
+    .sort((a, b) => {
+      const aUnknown = a[0].startsWith("Ei ");
+      const bUnknown = b[0].startsWith("Ei ");
+      if (aUnknown !== bUnknown) return aUnknown ? 1 : -1;
+      return b[1] - a[1] || a[0].localeCompare(b[0], "fi");
+    });
+
+  if (!entries.length) return "—";
+
+  const lines: string[] = [];
+  let used = 0;
+  for (const [name, count] of entries) {
+    const line = `${name} — ${count}`;
+    if (lines.length > 0 && used + line.length + 1 > 900) {
+      lines.push(`… ja ${entries.length - lines.length} muuta`);
+      break;
+    }
+    lines.push(line);
+    used += line.length + 1;
+  }
+  return lines.join("\n");
+}
+
+function locationFields({
+  countries,
+  cities,
+  totalVisits,
+  bot,
+}: {
+  countries: Record<string, number> | null;
+  cities: Record<string, number> | null;
+  totalVisits: number | null;
+  bot: boolean;
+}) {
+  if (bot || !countries || !cities) return [];
+  const tracked = Object.values(countries).reduce(
+    (sum, count) => sum + Number(count || 0),
+    0,
+  );
+  const older = Number.isFinite(Number(totalVisits))
+    ? Number(totalVisits) - tracked
+    : 0;
+  const note =
+    older > 0 ? `\n\nVanhat käynnit ilman paikkaa: ${older}` : "";
+  return [
+    { name: "Maat", value: `${formatCountList(countries)}${note}` },
+    { name: "Kaupungit", value: formatCountList(cities) },
+  ];
+}
+
+export function formatPlace(geo: GeoInfo | null) {
+  const city = String(geo?.city || "").trim();
+  const region = String(geo?.subdivision?.name || "").trim();
+  const countryName = String(geo?.country?.name || "").trim();
+  const countryCode = String(geo?.country?.code || "").trim();
+  const country = countryNameFromCode(countryCode) || countryName;
+  const locality = city || region;
+  const place = [locality, country].filter(Boolean).join(", ");
+  return place || "ei tiedossa";
+}
+
+export function formatVisitTime(date = new Date()) {
+  return new Intl.DateTimeFormat("fi-FI", {
+    timeZone: "Europe/Helsinki",
+    day: "numeric",
+    month: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export function buildVisitAlert({
+  totalVisits = null,
+  pageUrl = "",
+  referrer = "",
+  siteLanguage = "",
+  screen = "",
+  returning = false,
+  userAgent = "",
+  automation = false,
+  acceptLanguage = "",
+  headers = {},
+  geo = null,
+  countries = null,
+  cities = null,
+  now = new Date(),
+}: {
+  totalVisits?: number | null;
+  pageUrl?: string;
+  referrer?: string;
+  siteLanguage?: string;
+  screen?: string;
+  returning?: boolean;
+  userAgent?: string;
+  automation?: boolean;
+  acceptLanguage?: string;
+  headers?: Record<string, string>;
+  geo?: GeoInfo | null;
+  countries?: Record<string, number> | null;
+  cities?: Record<string, number> | null;
+  now?: Date;
+} = {}) {
+  const visitor = classifyVisitor({ userAgent, automation, screen });
+  const device = describeDevice(userAgent, screen, headers);
+  const typeValue = visitor.bot
+    ? `**Botti** · ${visitor.label}`
+    : visitor.uncertain
+      ? "**Epäselvä** · ei selainta"
+      : "**Ihminen**";
+
+  const countValue = visitor.bot
+    ? "ei laskettu"
+    : totalVisits === null
+      ? "— (laskuri ei käytössä)"
+      : String(totalVisits);
+
+  return {
+    bot: visitor.bot,
+    uncertain: visitor.uncertain,
+    username: "Kävijäseuranta",
+    content: visitor.bot
+      ? "🤖 Botti sivustolla"
+      : returning
+        ? "👀 Palaava kävijä"
+        : "👀 Uusi kävijä sivustolla",
+    title: "Sivustokäynti · Vuoden Tulokas",
+    color: visitor.bot ? 9807270 : 5793266,
+    fields: [
+      { name: "Tyyppi", value: typeValue },
+      { name: "Kävijöitä yhteensä", value: countValue, inline: true },
+      { name: "Aika", value: formatVisitTime(now), inline: true },
+      {
+        name: "Sivu",
+        value: formatPage(pageUrl, siteLanguage, acceptLanguage),
+      },
+      { name: "Mistä", value: formatSource(referrer, pageUrl) },
+      { name: "Paikka", value: formatPlace(geo) },
+      {
+        name: "Laite",
+        value: visitor.bot
+          ? [device, visitor.label].filter(Boolean).join(" · ")
+          : device || "tuntematon",
+      },
+      {
+        name: "Käynti",
+        value: visitor.bot ? "—" : returning ? "palaava" : "uusi",
+        inline: true,
+      },
+      ...locationFields({
+        countries,
+        cities,
+        totalVisits,
+        bot: visitor.bot,
+      }),
+    ],
+    footerText: "vuoden-tulokas-kiertue • visits",
+  };
+}
+
+/** Prefer Vercel geo headers; fall back to generic country headers. */
+export function readGeo(headers: Record<string, string> = {}): GeoInfo | null {
+  const city = headerValue(headers, "x-vercel-ip-city");
+  const countryCode = headerValue(headers, "x-vercel-ip-country");
+  const regionCode = headerValue(headers, "x-vercel-ip-country-region");
+  const fallbackCountry = headerValue(headers, "x-country");
+
+  const code = countryCode || fallbackCountry;
+  if (!city && !code && !regionCode) return null;
+
+  return {
+    city: decodeURIComponentSafe(city),
+    country: code
+      ? {
+          code: code.toUpperCase(),
+          name: countryNameFromCode(code) || code.toUpperCase(),
+        }
+      : null,
+    subdivision: regionCode
+      ? { code: regionCode, name: decodeURIComponentSafe(regionCode) }
+      : null,
+  };
+}
+
+function decodeURIComponentSafe(value: string) {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch {
+    return value;
+  }
+}
+
+function formatPage(
+  pageUrl: string,
+  siteLanguage: string,
+  acceptLanguage: string,
+) {
+  let path = "-";
+  const raw = String(pageUrl || "").trim();
+  if (raw) {
+    try {
+      const url = new URL(raw);
+      path = `${url.pathname || "/"}${url.hash || ""}`;
+    } catch {
+      path = raw.slice(0, 180);
+    }
+  }
+
+  const site = LANGUAGE_LABELS[siteLanguage] || "";
+  const browser = primaryLanguage(acceptLanguage);
+  const browserLabel = browser
+    ? `selain ${LANGUAGE_LABELS[browser] || browser}`
+    : "";
+  return [path, site, browserLabel].filter(Boolean).join(" · ");
+}
+
+function formatSource(referrer: string, pageUrl: string) {
+  const parts: string[] = [];
+  const campaign = readCampaign(pageUrl);
+  if (campaign) parts.push(campaign);
+
+  const raw = String(referrer || "").trim();
+  if (raw) {
+    try {
+      parts.push(new URL(raw).hostname.replace(/^www\./, ""));
+    } catch {
+      parts.push(raw.slice(0, 120));
+    }
+  }
+
+  return parts.join(" · ") || "suora käynti";
+}
+
+function readCampaign(pageUrl: string) {
+  try {
+    const url = new URL(String(pageUrl || ""));
+    const source = url.searchParams.get("utm_source");
+    const medium = url.searchParams.get("utm_medium");
+    const campaign = url.searchParams.get("utm_campaign");
+    const bits = [source, medium].filter(Boolean).join(" / ");
+    if (!bits && !campaign) return "";
+    return campaign ? `${bits || "kampanja"} (${campaign})` : bits;
+  } catch {
+    return "";
+  }
+}
+
+function parseUserAgent(userAgent: string) {
+  const ua = String(userAgent || "");
+  if (!ua) return { browser: "", os: "", kind: "" };
+
+  let browser = "";
+  if (/Edg\//.test(ua)) browser = "Edge";
+  else if (/OPR\/|Opera/.test(ua)) browser = "Opera";
+  else if (/SamsungBrowser/.test(ua)) browser = "Samsung Internet";
+  else if (/CriOS\//.test(ua)) browser = "Chrome";
+  else if (/FxiOS\/|Firefox\//.test(ua)) browser = "Firefox";
+  else if (/Chrome\//.test(ua)) browser = "Chrome";
+  else if (/Safari\//.test(ua)) browser = "Safari";
+
+  let os = "";
+  if (/iPhone|iPod/.test(ua)) os = "iPhone";
+  else if (/iPad/.test(ua)) os = "iPad";
+  else if (/Android/.test(ua)) os = "Android";
+  else if (/Mac OS X|Macintosh/.test(ua)) os = "macOS";
+  else if (/Windows/.test(ua)) os = "Windows";
+  else if (/CrOS/.test(ua)) os = "ChromeOS";
+  else if (/Linux/.test(ua)) os = "Linux";
+
+  let kind = "tietokone";
+  if (/iPad/.test(ua) || (/Android/.test(ua) && !/Mobile/.test(ua)))
+    kind = "tabletti";
+  else if (/Mobi|iPhone|iPod/.test(ua)) kind = "puhelin";
+
+  return { browser, os, kind };
+}
+
+function readClientHints(headers: Record<string, string>) {
+  const raw = headerValue(headers, "sec-ch-ua");
+  const platform = headerValue(headers, "sec-ch-ua-platform").replaceAll(
+    '"',
+    "",
+  );
+  const mobileHeader = headerValue(headers, "sec-ch-ua-mobile");
+  const brands = [...raw.matchAll(/"([^"]+)";v="[^"]*"/g)].map(
+    (match) => match[1],
+  );
+  const browser =
+    brands.find((brand) => !/chromium|not.?a.?brand/i.test(brand)) || "";
+  const mobile =
+    mobileHeader === "?1" ? true : mobileHeader === "?0" ? false : null;
+  return { browser, platform, mobile };
+}
+
+function normalizeScreen(value: string) {
+  const match = String(value || "")
+    .trim()
+    .match(/^(\d{2,5})[x×](\d{2,5})$/);
+  if (!match) return "";
+  const width = Number(match[1]);
+  const height = Number(match[2]);
+  if (width < 200 || height < 200 || width > 10000 || height > 10000)
+    return "";
+  return `${width}×${height}`;
+}
+
+function primaryLanguage(header: string) {
+  const tag = String(header || "")
+    .split(",")[0]
+    .trim()
+    .split("-")[0]
+    .toLowerCase();
+  return /^[a-z]{2}$/.test(tag) ? tag : "";
+}
+
+function countryNameFromCode(code: string) {
+  const normalized = String(code || "")
+    .trim()
+    .toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) return "";
+  try {
+    return new Intl.DisplayNames(["fi"], { type: "region" }).of(normalized) ||
+      normalized;
+  } catch {
+    return normalized;
+  }
+}
+
+function headerValue(headers: Record<string, string>, name: string) {
+  if (!headers) return "";
+  return String(headers[name] || headers[name.toLowerCase()] || "");
+}
