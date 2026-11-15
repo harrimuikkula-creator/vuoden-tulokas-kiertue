@@ -37,7 +37,7 @@ Sivusto lukee Sheetin julkisena CSV:nä. Tee kerran:
 
 1. Avaa Sheet → **Jaa**
 2. Yleinen käyttöoikeus → **Linkin saaneet voivat katsella**
-3. Kopioi Sheet-ID `.env.local` / Vercel env -muuttujaan `GOOGLE_SHEETS_ID`
+3. Kopioi Sheet-ID `.env.local` / Netlify env -muuttujaan `GOOGLE_SHEETS_ID`
 
 Ilman jakoa sivusto käyttää `src/data/`-fallbackeja.
 
@@ -51,22 +51,24 @@ Uusi keikka: lisää rivi `Shows`-välilehdelle.
 Uusi arvostelu: lisää rivi `Quotes`-välilehdelle.  
 Tyhjä solu `Site`-välilehdellä säilyttää sivuston oletustekstin.
 
-### Vercel
+### Netlify
 
-Lisää Environment Variables:
+Lisää Site configuration → Environment variables:
 
 - `GOOGLE_SHEETS_ID` = `161_R11bCnYHRPKTPAAfYlj7dz2fDUlt0WoX2DXyTaPI`
 - `DISCORD_WEBHOOK_URL` = Discord-kanavan webhook-URL (pakollinen kävijäilmoituksiin)
 - `DISCORD_MENTION` = valinnainen maininta, esim. `<@DISCORD_USER_ID>`
-- `FIREBASE_API_KEY` + `FIREBASE_PROJECT_ID` = sama Firebase kuin yrityskoomikko (käyntilaskuri)
+
+Käyntilaskuri käyttää Netlify Blobsia automaattisesti. Firebase-avaimet ovat vain varalla.
 
 ## Kävijäseuranta (Discord)
 
 Sama malli kuin yrityskoomikko-sivustolla: tuotantokäynnit lähettävät lyhyen Discord-ilmoituksen (paikka, laite, tuloreitti, käyntimäärä). Localhostia ei seurata. Bottikäynnit suodatetaan.
 
-1. Discord → kanava → **Edit Channel** → **Integrations** → **Webhooks** → **New Webhook** → kopioi URL
-2. Lisää URL Verceliin (`DISCORD_WEBHOOK_URL`) ja paikalliseen `.env.local`-tiedostoon
-3. Deployaa / pushaa muutokset Verceliin
+1. Helpoin: kopioi `DISCORD_WEBHOOK_URL` yrityskoomikko-sivuston Netlify-envistä  
+   **tai** Discord → kanava → Integrations → Webhooks → New Webhook → kopioi URL
+2. Lisää URL tämän sivuston Netlify-enviin (`DISCORD_WEBHOOK_URL`) ja `.env.local`-tiedostoon
+3. Pushaa / triggeröi Netlify-deploy
 4. Avaa live-sivusto (ei localhost) — Discordiin pitäisi tulla ilmoitus
 
 ## Koodissa pysyvä sisältö
@@ -81,4 +83,4 @@ Brand-kuvat: `public/tour-poster.jpg`, `public/tour-logo.jpg`, `public/harri-mui
 
 ## Stack
 
-Next.js (App Router) + TypeScript + CSS Modules. Sisältö Google Sheetsistä. Vercel-valmis.
+Next.js (App Router) + TypeScript + CSS Modules. Sisältö Google Sheetsistä. Netlify-hostaus.

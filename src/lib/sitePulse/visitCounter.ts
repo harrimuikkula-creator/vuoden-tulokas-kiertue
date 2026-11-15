@@ -6,8 +6,9 @@ import {
 } from "./visitStats";
 
 /**
- * Increment persistent visit counter via Firestore REST.
- * Uses a dedicated document so it does not mix with yrityskoomikko stats.
+ * Increment persistent visit counter.
+ * Prefers Netlify Blobs on Netlify; falls back to Firestore REST.
+ * Uses a dedicated key/document so it does not mix with yrityskoomikko stats.
  */
 const STATS_COLLECTION = "siteStats";
 const STATS_DOCUMENT = "vuoden-tulokas-visits";
@@ -15,7 +16,54 @@ const STATS_DOCUMENT = "vuoden-tulokas-visits";
 export async function incrementVisitCount(
   place: VisitPlace = {},
 ): Promise<VisitStats | null> {
+  const viaBlobs = await incrementViaBlobs(place);
+  if (viaBlobs !== null) return viaBlobs;
+
   return incrementViaFirestoreRest(place);
+}
+
+async function getStatsStore() {
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+    const token = process.env.NETLIFY_BLOB_READ_WRITE_TOKEN;
+    return siteID && token
+      ? getStore({ name: "site-stats", siteID, token })
+      : getStore("site-stats");
+  } catch {
+    return null;
+  }
+}
+
+async function incrementViaBlobs(place: VisitPlace) {
+  try {
+    const store = await getStatsStore();
+    if (!store) return null;
+
+    const stored = await store.get("vuoden-tulokas-visit-stats", {
+      type: "text",
+    });
+    const legacyTotal = Number(
+      (await store.get("vuoden-tulokas-total-visits", { type: "text" })) || "0",
+    );
+    const previous = parseVisitStats(stored, legacyTotal);
+    if (!stored && Number.isFinite(legacyTotal)) {
+      previous.totalVisits = legacyTotal;
+    }
+    const next = nextVisitStats(previous, place);
+    await store.set("vuoden-tulokas-visit-stats", JSON.stringify(next));
+    await store.set(
+      "vuoden-tulokas-total-visits",
+      String(next.totalVisits),
+    );
+    return next;
+  } catch (error) {
+    console.warn(
+      "visit counter: Netlify Blobs unavailable",
+      error instanceof Error ? error.message : error,
+    );
+    return null;
+  }
 }
 
 async function incrementViaFirestoreRest(place: VisitPlace) {
@@ -73,7 +121,9 @@ async function incrementViaFirestoreRest(place: VisitPlace) {
       doc?.fields?.breakdown?.stringValue,
       current,
     );
-    stored.totalVisits = Number.isFinite(current) ? current : stored.totalVisits;
+    stored.totalVisits = Number.isFinite(current)
+      ? current
+      : stored.totalVisits;
     const next = nextVisitStats(stored, place);
 
     const patchResponse = await fetch(

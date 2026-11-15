@@ -289,28 +289,116 @@ export function buildVisitAlert({
   };
 }
 
-/** Prefer Vercel geo headers; fall back to generic country headers. */
+/** Prefer Netlify geo; also accept Vercel-style headers. */
 export function readGeo(headers: Record<string, string> = {}): GeoInfo | null {
+  return (
+    mergeGeo(
+      decodeGeoHeader(headers),
+      vercelGeo(headers),
+      countryOnlyGeo(headerValue(headers, "x-country")),
+    ) || null
+  );
+}
+
+function mergeGeo(...sources: Array<GeoInfo | null>) {
+  const present = sources.filter(Boolean) as GeoInfo[];
+  if (!present.length) return null;
+
+  const city = present.map((geo) => geo.city).find(Boolean) || "";
+  const country =
+    present.map((geo) => geo.country).find((item) => item?.code || item?.name) ||
+    null;
+  const subdivision =
+    present
+      .map((geo) => geo.subdivision)
+      .find((item) => item?.name || item?.code) || null;
+  if (!city && !country && !subdivision) return null;
+  return { city, country, subdivision };
+}
+
+function decodeGeoHeader(headers: Record<string, string>) {
+  const raw = headerValue(headers, "x-nf-geo").trim();
+  if (!raw) return null;
+  return parseGeoJson(decodeBase64(raw)) || parseGeoJson(raw);
+}
+
+function vercelGeo(headers: Record<string, string>): GeoInfo | null {
   const city = headerValue(headers, "x-vercel-ip-city");
   const countryCode = headerValue(headers, "x-vercel-ip-country");
   const regionCode = headerValue(headers, "x-vercel-ip-country-region");
-  const fallbackCountry = headerValue(headers, "x-country");
-
-  const code = countryCode || fallbackCountry;
-  if (!city && !code && !regionCode) return null;
-
+  if (!city && !countryCode && !regionCode) return null;
   return {
     city: decodeURIComponentSafe(city),
-    country: code
+    country: countryCode
       ? {
-          code: code.toUpperCase(),
-          name: countryNameFromCode(code) || code.toUpperCase(),
+          code: countryCode.toUpperCase(),
+          name:
+            countryNameFromCode(countryCode) || countryCode.toUpperCase(),
         }
       : null,
     subdivision: regionCode
       ? { code: regionCode, name: decodeURIComponentSafe(regionCode) }
       : null,
   };
+}
+
+function decodeBase64(value: string) {
+  try {
+    return Buffer.from(value, "base64").toString("utf8");
+  } catch {
+    return "";
+  }
+}
+
+function parseGeoJson(value: string): GeoInfo | null {
+  try {
+    const parsed = JSON.parse(value);
+    return normalizeGeo(parsed?.geo || parsed);
+  } catch {
+    return null;
+  }
+}
+
+function countryOnlyGeo(code: string): GeoInfo | null {
+  const countryCode = String(code || "").trim();
+  if (!countryCode) return null;
+  return {
+    city: "",
+    country: {
+      code: countryCode.toUpperCase(),
+      name: countryNameFromCode(countryCode) || countryCode.toUpperCase(),
+    },
+    subdivision: null,
+  };
+}
+
+function normalizeGeo(geo: Record<string, unknown> | null): GeoInfo | null {
+  if (!geo || typeof geo !== "object") return null;
+  const city = String(geo.city || "").trim();
+  const countryObj = (geo.country || null) as
+    | { code?: string; name?: string }
+    | null;
+  const countryCode = String(
+    countryObj?.code || geo.countryCode || "",
+  ).trim();
+  const countryName = String(
+    countryObj?.name || geo.countryName || "",
+  ).trim();
+  const subdivisionObj = (geo.subdivision || null) as
+    | { code?: string; name?: string }
+    | null;
+  const regionName = String(subdivisionObj?.name || "").trim();
+  const regionCode = String(subdivisionObj?.code || "").trim();
+  const country =
+    countryCode || countryName
+      ? { code: countryCode, name: countryName }
+      : null;
+  const subdivision =
+    regionName || regionCode
+      ? { code: regionCode, name: regionName }
+      : null;
+  if (!city && !country && !subdivision) return null;
+  return { city, country, subdivision };
 }
 
 function decodeURIComponentSafe(value: string) {

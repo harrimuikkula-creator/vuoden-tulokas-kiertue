@@ -1,6 +1,6 @@
 /**
  * Short-window visit alert dedupe by client IP.
- * Uses in-memory store (good enough on warm Vercel instances).
+ * Prefers Netlify Blobs when available; falls back to in-memory.
  */
 
 const HUMAN_DEDUP_MS = 3 * 60 * 1000;
@@ -26,6 +26,53 @@ function normalizeIp(ip: string | null | undefined) {
     .slice(0, 80);
 }
 
+async function getDedupeStore() {
+  try {
+    const { getStore } = await import("@netlify/blobs");
+    const siteID = process.env.SITE_ID || process.env.NETLIFY_SITE_ID;
+    const token = process.env.NETLIFY_BLOB_READ_WRITE_TOKEN;
+    return siteID && token
+      ? getStore({ name: "visit-dedupe", siteID, token })
+      : getStore("visit-dedupe");
+  } catch {
+    return null;
+  }
+}
+
+async function readBlobEntry(
+  store: Awaited<ReturnType<typeof getDedupeStore>>,
+  key: string,
+) {
+  if (!store || !key) return null;
+  try {
+    const raw = await store.get(`ip:${encodeURIComponent(key)}`, {
+      type: "text",
+    });
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as DedupeEntry;
+    if (!parsed?.expiresAt || parsed.expiresAt <= Date.now()) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+async function writeBlobEntry(
+  store: Awaited<ReturnType<typeof getDedupeStore>>,
+  key: string,
+  entry: DedupeEntry,
+) {
+  if (!store || !key) return;
+  try {
+    await store.set(`ip:${encodeURIComponent(key)}`, JSON.stringify(entry));
+  } catch (error) {
+    console.warn(
+      "visit dedupe: blob write failed",
+      error instanceof Error ? error.message : error,
+    );
+  }
+}
+
 function memoryGet(key: string) {
   pruneMemory();
   const entry = recentByKey.get(key);
@@ -39,6 +86,24 @@ function memoryGet(key: string) {
 function memorySet(key: string, entry: DedupeEntry) {
   pruneMemory();
   recentByKey.set(key, entry);
+}
+
+async function readEntry(
+  store: Awaited<ReturnType<typeof getDedupeStore>>,
+  key: string,
+) {
+  if (!key) return null;
+  return memoryGet(key) || (await readBlobEntry(store, key));
+}
+
+async function writeEntry(
+  store: Awaited<ReturnType<typeof getDedupeStore>>,
+  key: string,
+  entry: DedupeEntry,
+) {
+  if (!key) return;
+  memorySet(key, entry);
+  await writeBlobEntry(store, key, entry);
 }
 
 /** Normal JS beacon from a real browser — must not be silenced by a prior bot mark. */
@@ -78,10 +143,11 @@ export async function evaluateVisitDedupe({
     return { skipDiscord: false, skipCount: false, reason: null };
   }
 
+  const store = await getDedupeStore();
   const now = Date.now();
 
   if (bot) {
-    memorySet(exact, {
+    await writeEntry(store, exact, {
       botSeenAt: now,
       humanAlertedAt: 0,
       expiresAt: now + BOT_TWIN_MS,
@@ -89,7 +155,7 @@ export async function evaluateVisitDedupe({
     return { skipDiscord: true, skipCount: true, reason: "bot" };
   }
 
-  const exactEntry = memoryGet(exact);
+  const exactEntry = await readEntry(store, exact);
 
   if (
     !trustHuman &&
@@ -113,8 +179,9 @@ export async function markHumanVisitAlerted(ip: string) {
   const exact = normalizeIp(ip);
   if (!exact || exact === "unknown") return;
 
+  const store = await getDedupeStore();
   const now = Date.now();
-  memorySet(exact, {
+  await writeEntry(store, exact, {
     botSeenAt: 0,
     humanAlertedAt: now,
     expiresAt: now + HUMAN_DEDUP_MS,
@@ -125,6 +192,9 @@ export function readClientIp(
   headers: Record<string, string>,
   fallbackIp = "",
 ) {
+  const nf = String(headers["x-nf-client-connection-ip"] || "").trim();
+  if (nf) return nf;
+
   const forwarded = String(headers["x-forwarded-for"] || "")
     .split(",")[0]
     .trim();
@@ -132,11 +202,6 @@ export function readClientIp(
 
   const realIp = String(headers["x-real-ip"] || "").trim();
   if (realIp) return realIp;
-
-  const vercelIp = String(headers["x-vercel-forwarded-for"] || "")
-    .split(",")[0]
-    .trim();
-  if (vercelIp) return vercelIp;
 
   return String(fallbackIp || "").trim();
 }
