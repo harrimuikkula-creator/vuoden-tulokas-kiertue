@@ -1,6 +1,7 @@
 import Image from "next/image";
 import type { Metadata } from "next";
 import ComedianStage from "@/components/ComedianStage";
+import TrackedLink from "@/components/TrackedLink";
 import { getSiteContent } from "@/lib/content";
 import { loadSiteComedians } from "@/lib/publicCast";
 import styles from "./page.module.css";
@@ -149,14 +150,20 @@ export default async function Home() {
                     <p className={styles.showCity}>{show.city}</p>
                   </div>
                   {show.ticketUrl ? (
-                    <a
+                    <TrackedLink
                       className={styles.ticketBtn}
                       href={show.ticketUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      kind="ticket"
+                      label={`${show.venue}, ${show.city}`}
+                      meta={{
+                        city: show.city,
+                        venue: show.venue,
+                        date: show.date,
+                        showId: show.id,
+                      }}
                     >
                       {copy.ticketLabel}
-                    </a>
+                    </TrackedLink>
                   ) : (
                     <span className={styles.ticketSoon}>{copy.ticketSoon}</span>
                   )}
@@ -187,8 +194,8 @@ export default async function Home() {
             height={560}
           />
           <p className={styles.footerPrivacy}>
-            Tietosuoja: Keräämme anonyymia tilastotietoa sivuston kävijämääristä
-            (sijainti, laite ja tuloreitti).{" "}
+            Tietosuoja: Keräämme anonyymia tilastotietoa sivuston käynneistä ja
+            klikkauksista (sijainti, laite, tuloreitti, lippu- ja somelinkit).{" "}
             <strong>
               Tietoja ei käytetä mainontaan eikä luovuteta eteenpäin.
             </strong>

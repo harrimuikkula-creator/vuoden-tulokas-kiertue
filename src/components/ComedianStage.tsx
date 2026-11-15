@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type KeyboardEvent } from "react";
+import TrackedLink from "@/components/TrackedLink";
 import { clipToEmbedUrl, type Comedian } from "@/data/comedians";
 import styles from "@/app/page.module.css";
 
@@ -150,9 +151,19 @@ export default function ComedianStage({ comedians }: { comedians: Comedian[] }) 
           <ul className={styles.socials}>
             {socialEntries.map(([key, url]) => (
               <li key={key}>
-                <a className={styles.socialLink} href={url} target="_blank" rel="noopener noreferrer">
+                <TrackedLink
+                  className={styles.socialLink}
+                  href={url}
+                  kind="social"
+                  label={`${comedian.name} · ${socialLabels[key] ?? key}`}
+                  meta={{
+                    comedian: comedian.name,
+                    comedianId: comedian.id,
+                    platform: socialLabels[key] ?? key,
+                  }}
+                >
                   {socialLabels[key] ?? key}
-                </a>
+                </TrackedLink>
               </li>
             ))}
           </ul>

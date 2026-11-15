@@ -63,7 +63,7 @@ Käyntilaskuri käyttää Netlify Blobsia automaattisesti. Firebase-avaimet ovat
 
 ## Kävijäseuranta (Discord)
 
-Sama malli kuin yrityskoomikko-sivustolla: tuotantokäynnit lähettävät lyhyen Discord-ilmoituksen (paikka, laite, tuloreitti, käyntimäärä). Localhostia ei seurata. Bottikäynnit suodatetaan.
+Sama malli kuin yrityskoomikko-sivustolla: tuotantokäynnit lähettävät lyhyen Discord-ilmoituksen (paikka, laite, tuloreitti, käyntimäärä). Lisäksi lippu- ja someklikit lähettävät oman ilmoituksen. Localhostia ei seurata. Bottikäynnit suodatetaan.
 
 1. Helpoin: kopioi `DISCORD_WEBHOOK_URL` yrityskoomikko-sivuston Netlify-envistä  
    **tai** Discord → kanava → Integrations → Webhooks → New Webhook → kopioi URL
