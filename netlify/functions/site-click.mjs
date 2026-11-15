@@ -4,6 +4,7 @@ import {
 } from './lib/discordWebhook.mjs'
 import {
   formatComedianTable,
+  formatPlatformTable,
   formatTicketTable,
   incrementClickStats,
 } from './lib/clickStats.mjs'
@@ -91,6 +92,7 @@ function formatTime(date = new Date()) {
 function buildAlert(client, stats) {
   const time = formatTime()
   const comedianTable = formatComedianTable(stats)
+  const platformTable = formatPlatformTable(stats)
   const ticketTable = formatTicketTable(stats)
 
   if (client.kind === 'ticket') {
@@ -112,7 +114,8 @@ function buildAlert(client, stats) {
           inline: true,
         },
         { name: 'Keikat', value: ticketTable },
-        { name: 'Koomikot', value: comedianTable },
+        { name: 'Koomikot × alustat', value: comedianTable },
+        { name: 'Alustat', value: platformTable },
       ],
       footerText: 'vuoden-tulokas-kiertue • clicks',
     }
@@ -134,7 +137,8 @@ function buildAlert(client, stats) {
           value: String(stats?.totals?.clip || 0),
           inline: true,
         },
-        { name: 'Koomikot', value: comedianTable },
+        { name: 'Koomikot × alustat', value: comedianTable },
+        { name: 'Alustat', value: platformTable },
         { name: 'Liput', value: ticketTable },
       ],
       footerText: 'vuoden-tulokas-kiertue • clicks',
@@ -145,18 +149,21 @@ function buildAlert(client, stats) {
   const platform = client.meta.platform || 'some'
   return {
     username: 'Klikkiseuranta',
-    content: `📱 Someklikki · ${platform} · ${comedian}`,
+    content: `📱 ${platform} · ${comedian}`,
     title: 'Klikit · Vuoden Tulokas',
     color: 5793266,
     fields: [
       { name: 'Nyt', value: `${comedian} · ${platform}` },
       { name: 'Aika', value: time, inline: true },
       {
-        name: 'Some yhteensä',
-        value: String(stats?.totals?.social || 0),
+        name: 'Klikit yhteensä',
+        value: String(
+          (stats?.totals?.social || 0) + (stats?.totals?.clip || 0),
+        ),
         inline: true,
       },
-      { name: 'Koomikot', value: comedianTable },
+      { name: 'Koomikot × alustat', value: comedianTable },
+      { name: 'Alustat', value: platformTable },
       { name: 'Liput', value: ticketTable },
     ],
     footerText: 'vuoden-tulokas-kiertue • clicks',
@@ -204,6 +211,7 @@ export default async (req) => {
     const stats = await incrementClickStats({
       kind: client.kind,
       comedian: client.meta.comedian || '',
+      platform: client.meta.platform || client.meta.clip || '',
       venue: client.meta.venue || '',
       city: client.meta.city || '',
       showLabel: client.label || '',

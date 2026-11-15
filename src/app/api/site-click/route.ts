@@ -14,15 +14,43 @@ const ALLOWED_KINDS = new Set(["ticket", "social", "clip"]);
 const DEDUPE_MS = 45 * 1000;
 const recentClicks = new Map<string, number>();
 
+const PLATFORM_ORDER = [
+  "Instagram",
+  "TikTok",
+  "Facebook",
+  "YouTube",
+  "Verkkosivu",
+  "Klippi",
+  "Video",
+  "Muu",
+] as const;
+
+const PLATFORM_ALIASES: Record<string, string> = {
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  facebook: "Facebook",
+  youtube: "YouTube",
+  website: "Verkkosivu",
+  verkkosivu: "Verkkosivu",
+  klippi: "Klippi",
+  clip: "Klippi",
+  video: "Video",
+};
+
 type ClickTotals = {
-  comedians: Record<string, { social: number; clip: number }>;
+  comedians: Record<
+    string,
+    { social: number; clip: number; platforms: Record<string, number> }
+  >;
   shows: Record<string, { ticket: number }>;
+  platforms: Record<string, number>;
   totals: { social: number; clip: number; ticket: number };
 };
 
 const memoryStats: ClickTotals = {
   comedians: {},
   shows: {},
+  platforms: {},
   totals: { social: 0, clip: 0, ticket: 0 },
 };
 
@@ -79,27 +107,106 @@ function padNum(value: number, width: number) {
   return String(value).padStart(width, " ");
 }
 
+function normalizePlatform(kind: string, platform: string) {
+  if (kind === "clip") return "Klippi";
+  const raw = String(platform || "").trim();
+  if (!raw) return "Muu";
+  return PLATFORM_ALIASES[raw.toLowerCase()] || raw.slice(0, 24);
+}
+
+function shortPlatform(name: string) {
+  if (name === "Instagram") return "IG";
+  if (name === "Facebook") return "FB";
+  if (name === "YouTube") return "YT";
+  if (name === "Verkkosivu") return "Web";
+  if (name === "TikTok") return "TT";
+  if (name === "Klippi") return "Klip";
+  return name.slice(0, 4);
+}
+
 function formatComedianTable(stats: ClickTotals) {
   const rows = Object.entries(stats.comedians)
-    .map(([name, counts]) => ({
-      name,
-      social: counts.social || 0,
-      clip: counts.clip || 0,
-      total: (counts.social || 0) + (counts.clip || 0),
-    }))
+    .map(([name, counts]) => {
+      const platforms = { ...counts.platforms };
+      const total =
+        Object.values(platforms).reduce((sum, n) => sum + n, 0) ||
+        counts.social + counts.clip;
+      return { name, platforms, total };
+    })
     .filter((row) => row.total > 0)
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "fi"));
 
   if (!rows.length) return "```\nEi vielä koomikkoklikkejä\n```";
 
-  const nameWidth = Math.max(8, ...rows.map((row) => row.name.length));
-  const header = `${pad("Koomikko", nameWidth)}  Some  Klipit  Yht`;
-  const line = `${"-".repeat(nameWidth)}  ----  ------  ---`;
-  const body = rows.map(
-    (row) =>
-      `${pad(row.name, nameWidth)}  ${padNum(row.social, 4)}  ${padNum(row.clip, 6)}  ${padNum(row.total, 3)}`,
+  const activePlatforms = PLATFORM_ORDER.filter((platform) =>
+    rows.some((row) => (row.platforms[platform] || 0) > 0),
   );
-  const footer = `${pad("YHTEENSÄ", nameWidth)}  ${padNum(stats.totals.social, 4)}  ${padNum(stats.totals.clip, 6)}  ${padNum(stats.totals.social + stats.totals.clip, 3)}`;
+  for (const row of rows) {
+    for (const platform of Object.keys(row.platforms)) {
+      if (
+        !activePlatforms.includes(platform as (typeof PLATFORM_ORDER)[number]) &&
+        (row.platforms[platform] || 0) > 0
+      ) {
+        activePlatforms.push(platform as (typeof PLATFORM_ORDER)[number]);
+      }
+    }
+  }
+
+  const nameWidth = Math.max(8, ...rows.map((row) => row.name.length));
+  const colWidth = Math.max(
+    4,
+    ...activePlatforms.map((platform) => shortPlatform(platform).length),
+  );
+  const header = [
+    pad("Koomikko", nameWidth),
+    ...activePlatforms.map((platform) =>
+      pad(shortPlatform(platform), colWidth),
+    ),
+    pad("Yht", 3),
+  ].join("  ");
+  const line = [
+    "-".repeat(nameWidth),
+    ...activePlatforms.map(() => "-".repeat(colWidth)),
+    "---",
+  ].join("  ");
+  const body = rows.map((row) =>
+    [
+      pad(row.name, nameWidth),
+      ...activePlatforms.map((platform) =>
+        padNum(row.platforms[platform] || 0, colWidth),
+      ),
+      padNum(row.total, 3),
+    ].join("  "),
+  );
+  const platformTotals = activePlatforms.map((platform) =>
+    rows.reduce((sum, row) => sum + (row.platforms[platform] || 0), 0),
+  );
+  const grand = rows.reduce((sum, row) => sum + row.total, 0);
+  const footer = [
+    pad("YHTEENSÄ", nameWidth),
+    ...platformTotals.map((value) => padNum(value, colWidth)),
+    padNum(grand, 3),
+  ].join("  ");
+
+  return ["```", header, line, ...body, line, footer, "```"].join("\n");
+}
+
+function formatPlatformTable(stats: ClickTotals) {
+  const rows = Object.entries(stats.platforms)
+    .map(([name, count]) => ({ name, count }))
+    .filter((row) => row.count > 0)
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "fi"));
+
+  if (!rows.length) return "```\nEi vielä alustaklikkejä\n```";
+
+  const nameWidth = Math.max(6, ...rows.map((row) => row.name.length));
+  const header = `${pad("Alusta", nameWidth)}  Klikit`;
+  const line = `${"-".repeat(nameWidth)}  ------`;
+  const body = rows.map(
+    (row) => `${pad(row.name, nameWidth)}  ${padNum(row.count, 6)}`,
+  );
+  const total = rows.reduce((sum, row) => sum + row.count, 0);
+  const footer = `${pad("YHTEENSÄ", nameWidth)}  ${padNum(total, 6)}`;
   return ["```", header, line, ...body, line, footer, "```"].join("\n");
 }
 
@@ -141,8 +248,17 @@ function incrementMemory(client: {
   }
 
   const comedian = client.meta.comedian || "Tuntematon";
-  const row = memoryStats.comedians[comedian] || { social: 0, clip: 0 };
-  if (client.kind === "clip") {
+  const platform = normalizePlatform(
+    client.kind,
+    client.meta.platform || client.meta.clip || "",
+  );
+  const row = memoryStats.comedians[comedian] || {
+    social: 0,
+    clip: 0,
+    platforms: {},
+  };
+  row.platforms[platform] = (row.platforms[platform] || 0) + 1;
+  if (client.kind === "clip" || platform === "Klippi") {
     row.clip += 1;
     memoryStats.totals.clip += 1;
   } else {
@@ -150,6 +266,7 @@ function incrementMemory(client: {
     memoryStats.totals.social += 1;
   }
   memoryStats.comedians[comedian] = row;
+  memoryStats.platforms[platform] = (memoryStats.platforms[platform] || 0) + 1;
   return memoryStats;
 }
 
@@ -186,6 +303,7 @@ function buildAlert(
 ) {
   const time = formatTime();
   const comedianTable = formatComedianTable(stats);
+  const platformTable = formatPlatformTable(stats);
   const ticketTable = formatTicketTable(stats);
 
   if (client.kind === "ticket") {
@@ -207,7 +325,8 @@ function buildAlert(
           inline: true,
         },
         { name: "Keikat", value: ticketTable },
-        { name: "Koomikot", value: comedianTable },
+        { name: "Koomikot × alustat", value: comedianTable },
+        { name: "Alustat", value: platformTable },
       ],
       footerText: "vuoden-tulokas-kiertue • clicks",
     };
@@ -231,7 +350,8 @@ function buildAlert(
           value: String(stats.totals.clip),
           inline: true,
         },
-        { name: "Koomikot", value: comedianTable },
+        { name: "Koomikot × alustat", value: comedianTable },
+        { name: "Alustat", value: platformTable },
         { name: "Liput", value: ticketTable },
       ],
       footerText: "vuoden-tulokas-kiertue • clicks",
@@ -242,18 +362,19 @@ function buildAlert(
   const platform = client.meta.platform || "some";
   return {
     username: "Klikkiseuranta",
-    content: `📱 Someklikki · ${platform} · ${comedian}`,
+    content: `📱 ${platform} · ${comedian}`,
     title: "Klikit · Vuoden Tulokas",
     color: 5793266,
     fields: [
       { name: "Nyt", value: `${comedian} · ${platform}` },
       { name: "Aika", value: time, inline: true },
       {
-        name: "Some yhteensä",
-        value: String(stats.totals.social),
+        name: "Klikit yhteensä",
+        value: String(stats.totals.social + stats.totals.clip),
         inline: true,
       },
-      { name: "Koomikot", value: comedianTable },
+      { name: "Koomikot × alustat", value: comedianTable },
+      { name: "Alustat", value: platformTable },
       { name: "Liput", value: ticketTable },
     ],
     footerText: "vuoden-tulokas-kiertue • clicks",
