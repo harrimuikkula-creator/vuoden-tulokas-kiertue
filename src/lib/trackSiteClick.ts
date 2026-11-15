@@ -1,4 +1,4 @@
-export type SiteClickKind = "ticket" | "social";
+export type SiteClickKind = "ticket" | "social" | "clip";
 
 export type SiteClickPayload = {
   kind: SiteClickKind;
@@ -6,6 +6,10 @@ export type SiteClickPayload = {
   href: string;
   meta?: Record<string, string>;
 };
+
+const ATTR = "data-site-click";
+const CLIENT_DEDUP_MS = 2_000;
+const recentClientClicks = new Map<string, number>();
 
 /**
  * Fire-and-forget click beacon. Skips localhost.
@@ -17,10 +21,18 @@ export function trackSiteClick(event: SiteClickPayload) {
   const host = window.location.hostname;
   if (host === "localhost" || host === "127.0.0.1") return;
 
+  const kind = event.kind;
+  const href = String(event.href || "").slice(0, 500);
+  const dedupeKey = `${kind}:${href || event.label || ""}`;
+  const now = Date.now();
+  const last = recentClientClicks.get(dedupeKey) || 0;
+  if (now - last < CLIENT_DEDUP_MS) return;
+  recentClientClicks.set(dedupeKey, now);
+
   const payload = {
-    kind: event.kind,
+    kind,
     label: String(event.label || "").slice(0, 200),
-    href: String(event.href || "").slice(0, 500),
+    href,
     meta: sanitizeMeta(event.meta),
     pageUrl: window.location.href.slice(0, 500),
   };
@@ -45,6 +57,49 @@ export function trackSiteClick(event: SiteClickPayload) {
       console.warn("Site click failed.", error);
     });
 }
+
+export function siteClickDataAttr(event: SiteClickPayload) {
+  return JSON.stringify({
+    kind: event.kind,
+    label: String(event.label || "").slice(0, 200),
+    href: String(event.href || "").slice(0, 500),
+    meta: sanitizeMeta(event.meta),
+  });
+}
+
+/** Capture clicks even if React onClick is missing/stripped. */
+export function bindSiteClickDelegation() {
+  if (typeof document === "undefined") return () => {};
+
+  const onPointerDown = (event: PointerEvent) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const node = target.closest(`[${ATTR}]`);
+    if (!(node instanceof HTMLElement)) return;
+    const raw = node.getAttribute(ATTR);
+    if (!raw) return;
+    try {
+      const parsed = JSON.parse(raw) as SiteClickPayload;
+      if (!parsed?.kind) return;
+      trackSiteClick({
+        kind: parsed.kind,
+        label: parsed.label || "",
+        href:
+          parsed.href ||
+          (node instanceof HTMLAnchorElement ? node.href : "") ||
+          "",
+        meta: parsed.meta,
+      });
+    } catch {
+      // ignore bad payloads
+    }
+  };
+
+  document.addEventListener("pointerdown", onPointerDown, true);
+  return () => document.removeEventListener("pointerdown", onPointerDown, true);
+}
+
+export const SITE_CLICK_ATTR = ATTR;
 
 function sanitizeMeta(meta: Record<string, string> | undefined) {
   if (!meta || typeof meta !== "object") return {};

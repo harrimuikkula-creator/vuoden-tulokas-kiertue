@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Anton, Manrope } from "next/font/google";
 import SetAppHeight from "@/components/SetAppHeight";
+import SiteClickDelegation from "@/components/SiteClickDelegation";
 import TrackSiteVisit from "@/components/TrackSiteVisit";
 import "./globals.css";
 
@@ -46,6 +47,7 @@ export default function RootLayout({
       <body className={`${display.variable} ${body.variable}`}>
         <SetAppHeight />
         <TrackSiteVisit />
+        <SiteClickDelegation />
         {children}
       </body>
     </html>

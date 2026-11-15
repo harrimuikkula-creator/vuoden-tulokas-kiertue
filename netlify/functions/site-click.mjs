@@ -2,8 +2,13 @@ import {
   getDiscordWebhookUrl,
   postDiscordEmbed,
 } from './lib/discordWebhook.mjs'
+import {
+  formatComedianTable,
+  formatTicketTable,
+  incrementClickStats,
+} from './lib/clickStats.mjs'
 
-const ALLOWED_KINDS = new Set(['ticket', 'social'])
+const ALLOWED_KINDS = new Set(['ticket', 'social', 'clip'])
 const DEDUPE_MS = 45 * 1000
 const recentClicks = new Map()
 
@@ -83,7 +88,11 @@ function formatTime(date = new Date()) {
   }).format(date)
 }
 
-function buildAlert(client) {
+function buildAlert(client, stats) {
+  const time = formatTime()
+  const comedianTable = formatComedianTable(stats)
+  const ticketTable = formatTicketTable(stats)
+
   if (client.kind === 'ticket') {
     const city = client.meta.city || ''
     const venue = client.meta.venue || ''
@@ -91,16 +100,44 @@ function buildAlert(client) {
     const place = [venue, city].filter(Boolean).join(', ') || client.label || '—'
     return {
       username: 'Klikkiseuranta',
-      content: '🎫 Lippuklikki',
-      title: 'Liput · Vuoden Tulokas',
+      content: `🎫 Lippuklikki · ${place}`,
+      title: 'Klikit · Vuoden Tulokas',
       color: 15844367,
       fields: [
-        { name: 'Keikka', value: place },
-        { name: 'Päivä', value: date || '—', inline: true },
-        { name: 'Aika', value: formatTime(), inline: true },
-        { name: 'Linkki', value: client.href || '—' },
+        { name: 'Nyt', value: `${place}${date ? ` · ${date}` : ''}` },
+        { name: 'Aika', value: time, inline: true },
+        {
+          name: 'Liput yhteensä',
+          value: String(stats?.totals?.ticket || 0),
+          inline: true,
+        },
+        { name: 'Keikat', value: ticketTable },
+        { name: 'Koomikot', value: comedianTable },
       ],
-      footerText: 'vuoden-tulokas-kiertue • ticket',
+      footerText: 'vuoden-tulokas-kiertue • clicks',
+    }
+  }
+
+  if (client.kind === 'clip') {
+    const comedian = client.meta.comedian || client.label || '—'
+    const clipLabel = client.meta.clip || 'Klippi'
+    return {
+      username: 'Klikkiseuranta',
+      content: `▶️ Klippi · ${comedian}`,
+      title: 'Klikit · Vuoden Tulokas',
+      color: 10181046,
+      fields: [
+        { name: 'Nyt', value: `${comedian} · ${clipLabel}` },
+        { name: 'Aika', value: time, inline: true },
+        {
+          name: 'Klipit yhteensä',
+          value: String(stats?.totals?.clip || 0),
+          inline: true,
+        },
+        { name: 'Koomikot', value: comedianTable },
+        { name: 'Liput', value: ticketTable },
+      ],
+      footerText: 'vuoden-tulokas-kiertue • clicks',
     }
   }
 
@@ -108,16 +145,21 @@ function buildAlert(client) {
   const platform = client.meta.platform || 'some'
   return {
     username: 'Klikkiseuranta',
-    content: `📱 Someklikki · ${platform}`,
-    title: 'Some · Vuoden Tulokas',
+    content: `📱 Someklikki · ${platform} · ${comedian}`,
+    title: 'Klikit · Vuoden Tulokas',
     color: 5793266,
     fields: [
-      { name: 'Koomikko', value: comedian, inline: true },
-      { name: 'Alusta', value: platform, inline: true },
-      { name: 'Aika', value: formatTime(), inline: true },
-      { name: 'Linkki', value: client.href || '—' },
+      { name: 'Nyt', value: `${comedian} · ${platform}` },
+      { name: 'Aika', value: time, inline: true },
+      {
+        name: 'Some yhteensä',
+        value: String(stats?.totals?.social || 0),
+        inline: true,
+      },
+      { name: 'Koomikot', value: comedianTable },
+      { name: 'Liput', value: ticketTable },
     ],
-    footerText: 'vuoden-tulokas-kiertue • social',
+    footerText: 'vuoden-tulokas-kiertue • clicks',
   }
 }
 
@@ -159,13 +201,25 @@ export default async (req) => {
     }
     recentClicks.set(dedupeKey, now + DEDUPE_MS)
 
-    const alert = buildAlert(client)
+    const stats = await incrementClickStats({
+      kind: client.kind,
+      comedian: client.meta.comedian || '',
+      venue: client.meta.venue || '',
+      city: client.meta.city || '',
+      showLabel: client.label || '',
+    })
+
+    const alert = buildAlert(client, stats)
     const discordOk = await postDiscordEmbed(alert)
     if (!discordOk) {
       return json(502, { error: 'Discord webhook failed' })
     }
 
-    return json(200, { ok: true, discord: true })
+    return json(200, {
+      ok: true,
+      discord: true,
+      totals: stats?.totals || null,
+    })
   } catch (error) {
     console.error('site-click failed', error)
     return json(500, { error: error?.message || 'Failed to record click' })

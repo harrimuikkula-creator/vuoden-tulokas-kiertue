@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState, type KeyboardEvent } from "react";
+import TrackedClip from "@/components/TrackedClip";
 import TrackedLink from "@/components/TrackedLink";
 import { clipToEmbedUrl, type Comedian } from "@/data/comedians";
 import styles from "@/app/page.module.css";
@@ -180,22 +181,30 @@ export default function ComedianStage({ comedians }: { comedians: Comedian[] }) 
             return (
               <li key={label} className={styles.clipSlot}>
                 {embed ? (
-                  <iframe
+                  <TrackedClip
                     className={styles.clipFrame}
-                    src={embed}
+                    embedUrl={embed}
+                    sourceUrl={url}
                     title={`${comedian.name}, ${label}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
+                    comedianName={comedian.name}
+                    comedianId={comedian.id}
+                    clipLabel={label}
                   />
                 ) : url ? (
-                  <a
+                  <TrackedLink
                     className={styles.clipLink}
                     href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    kind="clip"
+                    label={`${comedian.name} · ${label}`}
+                    meta={{
+                      comedian: comedian.name,
+                      comedianId: comedian.id,
+                      clip: label,
+                      platform: "Video",
+                    }}
                   >
                     Katso video
-                  </a>
+                  </TrackedLink>
                 ) : (
                   <p className={styles.clipPending}>LUONNOS {label} · tulossa</p>
                 )}

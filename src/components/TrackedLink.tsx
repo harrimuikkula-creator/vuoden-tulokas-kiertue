@@ -1,7 +1,9 @@
 "use client";
 
-import type { ReactNode, MouseEvent } from "react";
+import type { ReactNode, MouseEvent, PointerEvent } from "react";
 import {
+  SITE_CLICK_ATTR,
+  siteClickDataAttr,
   trackSiteClick,
   type SiteClickKind,
 } from "@/lib/trackSiteClick";
@@ -24,8 +26,18 @@ export default function TrackedLink({
   label,
   meta,
 }: TrackedLinkProps) {
+  const payload = { kind, label, href, meta };
+
+  function pulse() {
+    trackSiteClick(payload);
+  }
+
+  function onPointerDown(_event: PointerEvent<HTMLAnchorElement>) {
+    pulse();
+  }
+
   function onClick(_event: MouseEvent<HTMLAnchorElement>) {
-    trackSiteClick({ kind, label, href, meta });
+    pulse();
   }
 
   return (
@@ -34,6 +46,8 @@ export default function TrackedLink({
       href={href}
       target="_blank"
       rel="noopener noreferrer"
+      {...{ [SITE_CLICK_ATTR]: siteClickDataAttr(payload) }}
+      onPointerDown={onPointerDown}
       onClick={onClick}
     >
       {children}

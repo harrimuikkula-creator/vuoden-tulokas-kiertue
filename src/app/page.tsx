@@ -195,8 +195,8 @@ export default async function Home() {
           />
           <p className={styles.footerPrivacy}>
             Tietosuoja: Keräämme anonyymia tilastotietoa sivuston käynneistä ja
-            klikkauksista (sijainti, laite, tuloreitti sekä lippu- ja
-            somelinkit).{" "}
+            klikkauksista (sijainti, laite, tuloreitti sekä lippu-, some- ja
+            klippilinkit).{" "}
             <strong>
               Tietoja ei käytetä mainontaan eikä luovuteta eteenpäin.
             </strong>
